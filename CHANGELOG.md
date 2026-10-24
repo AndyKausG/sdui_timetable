@@ -16,6 +16,7 @@ First release as standalone integration `sdui` (successor of
 - Event `sdui_timetable_change` for new substitutions/cancellations
 - Link to the Sdui school search in the setup dialog
 - Children of parent accounts detected via /users/self/family; timetable ids can also be entered manually
+- Diagnostics download with the shape of the API responses (no personal data)
 - German and English translations
 
 Breaking: new domain `sdui`, manual Bearer-token mode removed. Remove old `sdui_timetable` entries first.

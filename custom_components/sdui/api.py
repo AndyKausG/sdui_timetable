@@ -442,6 +442,10 @@ class SduiApiClient:
                 raise SduiApiError(f"Network error: {exc}") from exc
         raise SduiAuthError("Authentication failed after re-login")
 
+    async def fetch_raw(self, path: str, params: dict | None = None) -> dict:
+        """GET an API path and return the full JSON response (diagnostics)."""
+        return await self._get(path, params)
+
     async def fetch_self(self) -> dict:
         """Return the logged-in user (GET /users/self)."""
         return (await self._get("/users/self")).get("data") or {}
