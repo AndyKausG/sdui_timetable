@@ -51,6 +51,37 @@ Credentials are stored in the config entry (like other cloud integrations). If t
 
 Entity ids depend on the language and the student's name.
 
+## Timetable card
+The calendars work with the [Timetable Card](https://github.com/KingDando8430/HA-Timetable-Card) (HACS: *Timetable Card*), which shows them as a weekly school timetable:
+
+```yaml
+type: custom:timetable-card
+title: Stundenplan
+entities:
+  - id: calendar.sdui_child_one_stundenplan   # one calendar per student
+    color: "#e23467"
+  - id: calendar.sdui_child_two_stundenplan
+    color: "#03a9f4"
+weekdays: [Mon, Tue, Wed, Thu, Fri]
+show_location: true          # room
+show_notes: false            # teacher / note in the popup only
+show_calendar_filter: true   # switch between students
+auto_switch_week: true       # show next week after Friday
+keywords:                    # highlight changes (prefix in the event title)
+  - keyword: ENTFALL
+    color: "#9e9e9e"
+    exact_match: false
+    color_mode: block
+  - keyword: VERTRETUNG
+    color: "#ff9800"
+    exact_match: false
+    color_mode: border
+```
+
+Take the entity ids from *Settings → Entities* (search for "Stundenplan"/"Timetable"). The integration fetches the last 7 and the next 14 days, so weeks further away stay empty. Schools often publish the timetable only week by week.
+
+Some schools list all parallel courses of a class (e.g. every religion group). Use keyword rules of the card to hide the ones your child does not attend.
+
 ## Notification example
 ```yaml
 automation:

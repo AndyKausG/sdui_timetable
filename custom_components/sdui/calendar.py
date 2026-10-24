@@ -48,12 +48,12 @@ def _lesson_to_event(lesson: dict) -> CalendarEvent | None:
     hour = lesson.get("hour", "")
 
     desc_parts = []
-    if hour:
+    # Some schools send a clock emoji instead of the lesson number
+    if any(c.isdigit() for c in str(hour)):
         desc_parts.append(f"Stunde: {hour}")
     if teachers:
         desc_parts.append(f"Lehrkraft: {teachers}")
-    if rooms:
-        desc_parts.append(f"Raum: {rooms}")
+    # The room is the event location, not repeated here
     if comment:
         desc_parts.append(f"Hinweis: {comment}")
 
