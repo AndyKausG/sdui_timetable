@@ -2,79 +2,86 @@
     "config": {
         "step": {
             "user": {
-                "title": "Find your school",
-                "description": "Log in with the same credentials you use on sdui.app. Parent accounts can add all children at once.",
+                "title": "Connect Sdui",
+                "description": "Timetable, substitutions and cancellations from Sdui in Home Assistant.\n\nFirst find your school, then log in with your usual Sdui credentials.",
                 "data": {
                     "school": "School"
                 },
                 "data_description": {
-                    "school": "Name, city or slink of the school (at least 3 characters). The address of the school's login page works too."
+                    "school": "Name or city of the school, e.g. “Goethe” or “Stuttgart” (at least 3 characters)."
                 }
             },
             "school": {
                 "title": "Choose your school",
+                "description": "{count} result(s) for “{term}”. Not listed? Go back and try another search term.",
                 "data": {
                     "slink": "School"
                 }
             },
             "credentials": {
-                "title": "Sdui login",
-                "description": "Log in at {school}.",
+                "title": "Log in to Sdui",
+                "description": "**{school}**\n\nUse the same credentials as in the Sdui app or on sdui.app. The password is stored in Home Assistant so that the login can be renewed automatically.",
                 "data": {
                     "username": "Username or e-mail",
                     "password": "Password"
                 }
             },
             "students": {
-                "title": "Students",
-                "description": "Choose the students whose timetable should be shown. Each student gets an own device with sensors and calendar. If a child is missing, enter its timetable id (number in the address of its timetable on sdui.app, after timetable/users/); several ids separated by commas.",
+                "title": "Choose students",
+                "description": "Each student gets a device with a timetable calendar and sensors for lessons, substitutions and school start/end.",
                 "data": {
                     "students": "Students",
-                    "extra_ids": "Further timetable ids"
+                    "extra_ids": "Further timetable ids (optional)"
+                },
+                "data_description": {
+                    "extra_ids": "Only needed if a student is missing: the number in the address of the timetable on sdui.app (…/timetable/users/1234567). Separate several ids with commas."
                 }
             },
             "reauth_confirm": {
-                "title": "Sdui re-authentication",
-                "description": "The login for {account} is no longer valid. Enter your Sdui credentials.",
+                "title": "Log in to Sdui again",
+                "description": "The login for **{account}** has expired or is no longer valid. Please enter your Sdui credentials again.",
                 "data": {
                     "slink": "School",
                     "username": "Username or e-mail",
                     "password": "Password"
                 },
                 "data_description": {
-                    "slink": "Slink of your school: the part after sdui.app/ in the address of its login page, e.g. my-school. Search your school at {school_search} – the address of the page you land on contains the slink. The full address works too."
+                    "slink": "Slink of the school (part of the address of its Sdui login page, e.g. my-school)."
                 }
             }
         },
         "error": {
-            "invalid_auth": "Login failed. Check school, username and password.",
-            "cannot_connect": "Could not connect to Sdui or school not found. Details in the Home Assistant log.",
-            "unknown": "Unexpected error. Check the Home Assistant logs.",
-            "no_students": "Select at least one student.",
-            "invalid_student": "No access to the timetable of an entered id. Check the id.",
+            "invalid_auth": "Login failed. Please check username and password.",
+            "cannot_connect": "Sdui cannot be reached right now. Please try again later.",
+            "unknown": "Unexpected error. Details are in the Home Assistant log.",
+            "no_students": "Please select at least one student.",
+            "invalid_student": "No access to the timetable of an entered id. Please check the id.",
             "school_not_found": "No school found. Try another part of the name or the city.",
-            "search_too_short": "Enter at least 3 characters."
+            "search_too_short": "Please enter at least 3 characters."
         },
         "abort": {
-            "already_configured": "This Sdui account is already configured.",
-            "reauth_successful": "Re-authentication successful.",
+            "already_configured": "This Sdui account is already set up.",
+            "reauth_successful": "Login renewed successfully.",
             "wrong_account": "These credentials belong to a different Sdui account."
         }
     },
     "options": {
         "step": {
             "init": {
-                "title": "Students",
-                "description": "Choose the students whose timetable should be shown. Each student gets an own device with sensors and calendar. If a child is missing, enter its timetable id (number in the address of its timetable on sdui.app, after timetable/users/); several ids separated by commas.",
+                "title": "Choose students",
+                "description": "Each student gets a device with a timetable calendar and sensors for lessons, substitutions and school start/end.",
                 "data": {
                     "students": "Students",
-                    "extra_ids": "Further timetable ids"
+                    "extra_ids": "Further timetable ids (optional)"
+                },
+                "data_description": {
+                    "extra_ids": "Only needed if a student is missing: the number in the address of the timetable on sdui.app (…/timetable/users/1234567). Separate several ids with commas."
                 }
             }
         },
         "error": {
-            "no_students": "Select at least one student.",
-            "invalid_student": "No access to the timetable of an entered id. Check the id."
+            "no_students": "Please select at least one student.",
+            "invalid_student": "No access to the timetable of an entered id. Please check the id."
         }
     },
     "entity": {

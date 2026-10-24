@@ -14,6 +14,7 @@ from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
+    SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -39,14 +40,11 @@ from .const import (
     CONF_TOKEN,
     CONF_USERNAME,
     DOMAIN,
-    SCHOOL_SEARCH_URL,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 PASSWORD_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
-# URLs are not allowed in translations, they are passed as placeholders
-PLACEHOLDERS = {"school_search": f"[sdui.app/select-school]({SCHOOL_SEARCH_URL})"}
 
 
 def _credentials_schema(defaults: Mapping[str, Any]) -> vol.Schema:
@@ -247,13 +245,14 @@ class SduiConfigFlow(ConfigFlow, domain=DOMAIN):
         self._client: SduiApiClient | None = None
         self._title = "Sdui"
         self._schools: dict[str, str] = {}
+        self._term = ""
         self._slink = ""
 
     async def async_step_user(self, user_input=None) -> ConfigFlowResult:
         """Search the school by name, city or slink."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            term = user_input[CONF_SCHOOL].strip()
+            term = self._term = user_input[CONF_SCHOOL].strip()
             if len(term) < 3:
                 errors["base"] = "search_too_short"
             else:
@@ -276,7 +275,6 @@ class SduiConfigFlow(ConfigFlow, domain=DOMAIN):
                 }
             ),
             errors=errors,
-            description_placeholders=PLACEHOLDERS,
         )
 
     async def async_step_school(self, user_input=None) -> ConfigFlowResult:
@@ -293,11 +291,19 @@ class SduiConfigFlow(ConfigFlow, domain=DOMAIN):
                             options=[
                                 SelectOptionDict(value=slink, label=label)
                                 for slink, label in self._schools.items()
-                            ]
+                            ],
+                            # Radio buttons for a few hits, a searchable list for many
+                            mode=SelectSelectorMode.LIST
+                            if len(self._schools) <= 6
+                            else SelectSelectorMode.DROPDOWN,
                         )
                     )
                 }
             ),
+            description_placeholders={
+                "count": str(len(self._schools)),
+                "term": self._term,
+            },
         )
 
     async def async_step_credentials(self, user_input=None) -> ConfigFlowResult:
@@ -380,7 +386,7 @@ class SduiConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="reauth_confirm",
             data_schema=_credentials_schema(user_input or entry.data),
             errors=errors,
-            description_placeholders={**PLACEHOLDERS, "account": entry.title},
+            description_placeholders={"account": entry.title},
         )
 
     @staticmethod

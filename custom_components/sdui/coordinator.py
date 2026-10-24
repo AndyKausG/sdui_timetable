@@ -15,6 +15,7 @@ from .const import (
     DOMAIN,
     EVENT_CHANGE,
     FETCH_DAYS,
+    PAST_DAYS,
     KIND_SUBSTITUTION,
     KINDS_CANCELLED,
     SCAN_INTERVAL_MINUTES,
@@ -220,15 +221,16 @@ class SduiCoordinator(DataUpdateCoordinator[dict[str, StudentTimetable]]):
         self._known_changes: dict[str, set[tuple]] | None = None
 
     async def _async_update_data(self) -> dict[str, StudentTimetable]:
-        """Fetch the timetable of every student for the next days."""
+        """Fetch the timetable of every student (last week and next days)."""
         today = dt_util.now().date()
+        start = today - timedelta(days=PAST_DAYS)
         end = today + timedelta(days=FETCH_DAYS)
         data: dict[str, StudentTimetable] = {}
 
         try:
             for user_id in self.students:
                 raw = await self.client.fetch_timetable(
-                    user_id, today.isoformat(), end.isoformat()
+                    user_id, start.isoformat(), end.isoformat()
                 )
                 _LOGGER.debug("Student %s: %d lessons received", user_id, len(raw))
                 data[user_id] = StudentTimetable([_parse_lesson(l) for l in raw])
