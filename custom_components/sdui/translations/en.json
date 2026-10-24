@@ -15,9 +15,10 @@
             },
             "students": {
                 "title": "Students",
-                "description": "Choose the students whose timetable should be shown. Each student gets an own device with sensors and calendar.",
+                "description": "Choose the students whose timetable should be shown. Each student gets an own device with sensors and calendar. If a child is missing, enter its timetable id (number in the address of its timetable on sdui.app, after timetable/users/); several ids separated by commas.",
                 "data": {
-                    "students": "Students"
+                    "students": "Students",
+                    "extra_ids": "Further timetable ids"
                 }
             },
             "reauth_confirm": {
@@ -37,7 +38,8 @@
             "invalid_auth": "Login failed. Check school, username and password.",
             "cannot_connect": "Could not connect to Sdui or school not found. Details in the Home Assistant log.",
             "unknown": "Unexpected error. Check the Home Assistant logs.",
-            "no_students": "Select at least one student."
+            "no_students": "Select at least one student.",
+            "invalid_student": "No access to the timetable of an entered id. Check the id."
         },
         "abort": {
             "already_configured": "This Sdui account is already configured.",
@@ -49,14 +51,16 @@
         "step": {
             "init": {
                 "title": "Students",
-                "description": "Choose the students whose timetable should be shown. Each student gets an own device with sensors and calendar.",
+                "description": "Choose the students whose timetable should be shown. Each student gets an own device with sensors and calendar. If a child is missing, enter its timetable id (number in the address of its timetable on sdui.app, after timetable/users/); several ids separated by commas.",
                 "data": {
-                    "students": "Students"
+                    "students": "Students",
+                    "extra_ids": "Further timetable ids"
                 }
             }
         },
         "error": {
-            "no_students": "Select at least one student."
+            "no_students": "Select at least one student.",
+            "invalid_student": "No access to the timetable of an entered id. Check the id."
         }
     },
     "entity": {

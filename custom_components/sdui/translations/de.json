@@ -15,9 +15,10 @@
             },
             "students": {
                 "title": "Schüler",
-                "description": "Schüler auswählen, deren Stundenplan angezeigt werden soll. Jeder Schüler bekommt ein eigenes Gerät mit Sensoren und Kalender.",
+                "description": "Schüler auswählen, deren Stundenplan angezeigt werden soll. Jeder Schüler bekommt ein eigenes Gerät mit Sensoren und Kalender. Fehlt ein Kind, dessen Stundenplan-ID eintragen (Zahl in der Adresse des Stundenplans auf sdui.app, nach timetable/users/); mehrere IDs mit Komma trennen.",
                 "data": {
-                    "students": "Schüler"
+                    "students": "Schüler",
+                    "extra_ids": "Weitere Stundenplan-IDs"
                 }
             },
             "reauth_confirm": {
@@ -37,7 +38,8 @@
             "invalid_auth": "Anmeldung fehlgeschlagen. Schule, Benutzername und Passwort prüfen.",
             "cannot_connect": "Keine Verbindung zu Sdui oder Schule nicht gefunden. Details im Home-Assistant-Log.",
             "unknown": "Unerwarteter Fehler. Home-Assistant-Log prüfen.",
-            "no_students": "Mindestens einen Schüler auswählen."
+            "no_students": "Mindestens einen Schüler auswählen.",
+            "invalid_student": "Kein Zugriff auf den Stundenplan einer eingetragenen ID. ID prüfen."
         },
         "abort": {
             "already_configured": "Dieser Sdui-Account ist bereits eingerichtet.",
@@ -49,14 +51,16 @@
         "step": {
             "init": {
                 "title": "Schüler",
-                "description": "Schüler auswählen, deren Stundenplan angezeigt werden soll. Jeder Schüler bekommt ein eigenes Gerät mit Sensoren und Kalender.",
+                "description": "Schüler auswählen, deren Stundenplan angezeigt werden soll. Jeder Schüler bekommt ein eigenes Gerät mit Sensoren und Kalender. Fehlt ein Kind, dessen Stundenplan-ID eintragen (Zahl in der Adresse des Stundenplans auf sdui.app, nach timetable/users/); mehrere IDs mit Komma trennen.",
                 "data": {
-                    "students": "Schüler"
+                    "students": "Schüler",
+                    "extra_ids": "Weitere Stundenplan-IDs"
                 }
             }
         },
         "error": {
-            "no_students": "Mindestens einen Schüler auswählen."
+            "no_students": "Mindestens einen Schüler auswählen.",
+            "invalid_student": "Kein Zugriff auf den Stundenplan einer eingetragenen ID. ID prüfen."
         }
     },
     "entity": {

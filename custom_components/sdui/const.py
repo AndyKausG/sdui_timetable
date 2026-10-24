@@ -19,6 +19,7 @@ CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 CONF_ACCOUNT_ID = "account_id"
 CONF_STUDENTS = "students"  # {user_id: display name}
+CONF_EXTRA_IDS = "extra_ids"  # manually entered timetable ids (setup form only)
 
 # Fired for every new substitution or cancellation
 EVENT_CHANGE = "sdui_timetable_change"

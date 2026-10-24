@@ -446,6 +446,10 @@ class SduiApiClient:
         """Return the logged-in user (GET /users/self)."""
         return (await self._get("/users/self")).get("data") or {}
 
+    async def fetch_user(self, user_id: str) -> dict:
+        """Return a user (GET /users/{id})."""
+        return (await self._get(f"/users/{user_id}")).get("data") or {}
+
     async def fetch_timetable(
         self, user_id: str, begins_at: str, ends_at: str
     ) -> list[dict]:

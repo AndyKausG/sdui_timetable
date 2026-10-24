@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -17,10 +18,12 @@ from homeassistant.helpers.selector import (
     TextSelectorConfig,
     TextSelectorType,
 )
+from homeassistant.util import dt as dt_util
 
 from .api import SduiApiClient, SduiApiError, SduiAuthError, async_login, normalize_slink
 from .const import (
     CONF_ACCOUNT_ID,
+    CONF_EXTRA_IDS,
     CONF_PASSWORD,
     CONF_SLINK,
     CONF_STUDENTS,
@@ -56,19 +59,24 @@ def _user_name(user: dict) -> str:
 
 def _students_of(self_user: dict) -> dict[str, str]:
     """Return {user_id: name} of the account's children, or the account itself."""
-    children = {
-        str(child["id"]): _user_name(child)
-        for child in self_user.get("childs") or []
-        if isinstance(child, dict) and child.get("id")
-    }
+    _LOGGER.debug(
+        "users/self keys: %s; childs keys: %s",
+        sorted(self_user),
+        [sorted(c) for c in self_user.get("childs") or [] if isinstance(c, dict)],
+    )
+    children = {}
+    for key in ("childs", "children"):
+        for child in self_user.get(key) or []:
+            if isinstance(child, dict) and (uid := child.get("id") or child.get("user_id")):
+                children[str(uid)] = _user_name(child)
     return children or {str(self_user["id"]): _user_name(self_user)}
 
 
 def _students_schema(available: dict[str, str], selected: list[str]) -> vol.Schema:
-    """Multi-select of the students to add."""
+    """Multi-select of the students plus free input of further timetable ids."""
     return vol.Schema(
         {
-            vol.Required(CONF_STUDENTS, default=selected): SelectSelector(
+            vol.Optional(CONF_STUDENTS, default=selected): SelectSelector(
                 SelectSelectorConfig(
                     options=[
                         SelectOptionDict(value=uid, label=f"{name} ({uid})")
@@ -76,9 +84,31 @@ def _students_schema(available: dict[str, str], selected: list[str]) -> vol.Sche
                     ],
                     multiple=True,
                 )
-            )
+            ),
+            vol.Optional(CONF_EXTRA_IDS, default=""): str,
         }
     )
+
+
+async def _async_students_from_input(
+    client: SduiApiClient, available: dict[str, str], user_input: Mapping[str, Any]
+) -> dict[str, str]:
+    """Build {user_id: name} from the selection and manually entered ids.
+
+    Raises SduiAuthError/SduiApiError if a manual id has no accessible timetable.
+    """
+    students = {uid: available[uid] for uid in user_input.get(CONF_STUDENTS) or []}
+    today = dt_util.now().date().isoformat()
+    for uid in re.findall(r"\d+", user_input.get(CONF_EXTRA_IDS) or ""):
+        if uid in students:
+            continue
+        await client.fetch_timetable(uid, today, today)
+        try:
+            name = _user_name(await client.fetch_user(uid))
+        except (SduiAuthError, SduiApiError):
+            name = uid
+        students[uid] = name if name != uid else f"Schüler {uid}"
+    return students
 
 
 async def _async_login(
@@ -128,6 +158,7 @@ class SduiConfigFlow(ConfigFlow, domain=DOMAIN):
         """Initialize."""
         self._data: dict[str, Any] = {}
         self._available: dict[str, str] = {}
+        self._client: SduiApiClient | None = None
         self._title = "Sdui"
 
     async def async_step_user(self, user_input=None) -> ConfigFlowResult:
@@ -135,7 +166,7 @@ class SduiConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                data, self_user, _ = await _async_login(self.hass, user_input)
+                data, self_user, self._client = await _async_login(self.hass, user_input)
             except Exception as exc:  # noqa: BLE001
                 errors["base"] = _error_key(exc)
             else:
@@ -144,8 +175,6 @@ class SduiConfigFlow(ConfigFlow, domain=DOMAIN):
                 self._data = data
                 self._available = _students_of(self_user)
                 self._title = f"Sdui {_user_name(self_user)}"
-                if len(self._available) == 1:
-                    return self._create(list(self._available))
                 return await self.async_step_students()
 
         return self.async_show_form(
@@ -159,21 +188,24 @@ class SduiConfigFlow(ConfigFlow, domain=DOMAIN):
         """Choose the students (children of a parent account)."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            if user_input[CONF_STUDENTS]:
-                return self._create(user_input[CONF_STUDENTS])
-            errors["base"] = "no_students"
+            try:
+                students = await _async_students_from_input(
+                    self._client, self._available, user_input
+                )
+            except (SduiAuthError, SduiApiError) as exc:
+                _LOGGER.warning("Timetable id not accessible: %s", exc)
+                errors["base"] = "invalid_student"
+            else:
+                if students:
+                    data = {**self._data, CONF_TOKEN: self._client.token}
+                    return self.async_create_entry(
+                        title=self._title, data={**data, CONF_STUDENTS: students}
+                    )
+                errors["base"] = "no_students"
         return self.async_show_form(
             step_id="students",
             data_schema=_students_schema(self._available, list(self._available)),
             errors=errors,
-        )
-
-    @callback
-    def _create(self, selected: list[str]) -> ConfigFlowResult:
-        """Create the entry with the selected students."""
-        students = {uid: self._available[uid] for uid in selected}
-        return self.async_create_entry(
-            title=self._title, data={**self._data, CONF_STUDENTS: students}
         )
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
@@ -219,8 +251,9 @@ class SduiOptionsFlow(OptionsFlow):
         current: dict[str, str] = entry.options.get(CONF_STUDENTS, entry.data[CONF_STUDENTS])
         errors: dict[str, str] = {}
 
+        client = entry.runtime_data.client
         try:
-            self_user = await entry.runtime_data.client.fetch_self()
+            self_user = await client.fetch_self()
             available = {**current, **_students_of(self_user)}
         except Exception as exc:  # noqa: BLE001
             # Offline: offer at least the current selection
@@ -228,15 +261,15 @@ class SduiOptionsFlow(OptionsFlow):
             available = dict(current)
 
         if user_input is not None:
-            if user_input[CONF_STUDENTS]:
-                return self.async_create_entry(
-                    data={
-                        CONF_STUDENTS: {
-                            uid: available[uid] for uid in user_input[CONF_STUDENTS]
-                        }
-                    }
-                )
-            errors["base"] = "no_students"
+            try:
+                students = await _async_students_from_input(client, available, user_input)
+            except (SduiAuthError, SduiApiError) as exc:
+                _LOGGER.warning("Timetable id not accessible: %s", exc)
+                errors["base"] = "invalid_student"
+            else:
+                if students:
+                    return self.async_create_entry(data={CONF_STUDENTS: students})
+                errors["base"] = "no_students"
 
         return self.async_show_form(
             step_id="init",
