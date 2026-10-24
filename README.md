@@ -31,7 +31,7 @@ Choose **Username & password** and enter:
 | School | the *slink* of your school, i.e. the part after `sdui.app/` in your school's login page, e.g. `https://sdui.app/my-school/login` → `my-school` (pasting the full URL works too) |
 | Username or e-mail | the same login you use on sdui.app |
 | Password | your Sdui password |
-| Timetable user_id (optional) | leave empty to use your own account. Parents who want a child's timetable enter the child's id from `https://sdui.app/timetable/users/<user_id>` |
+| Timetable user_id (optional) | leave empty: the integration reads your account; parent accounts get a selection of their children. Add the integration once per child. Alternatively enter the id from `https://sdui.app/timetable/users/<user_id>` |
 
 Supported login variants (detected automatically):
 - **"Einloggen mit Sdui"** – Sdui's Keycloak login (`iam.sdui-group.app`, OIDC with PKCE). Tokens are renewed with the refresh token, falling back to a new login. If your school is not detected, paste the address of the Sdui login page (`https://iam.sdui-group.app/realms/s-.../...`) into the *School* field instead of the slink.
@@ -43,7 +43,7 @@ The token is renewed automatically before it expires and whenever the API answer
 Existing token-only entries keep working until the token expires; the re-authenticate prompt then lets you switch to username & password. You can also switch any time via **Configure** (gear icon).
 
 ### Bearer token (manual, fallback)
-Choose **Bearer token** and enter the token and your user_id. The token expires and must then be replaced manually.
+Choose **Bearer token** and enter the token and your user_id. Sdui access tokens are valid for about 5 minutes only, so this mode is only useful for testing.
 
 Find your user id in the link to your timetable:
 

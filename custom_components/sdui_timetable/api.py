@@ -56,7 +56,8 @@ META_REFRESH_RE = re.compile(
 )
 CSRF_TOKEN_RE = re.compile(r'"csrfToken":"([^"]+)"', re.IGNORECASE)
 ISSUER_RE = re.compile(r"(https://[^\s\"'/]+/(?:auth/)?realms/[^\s\"'/?#]+)")
-REALM_RE = re.compile(r"^s-[0-9a-f]{8,}$")
+# Keycloak realm ids look like s-aadbb1dae3204654
+REALM_RE = re.compile(r"^s-[0-9a-f]{16}$")
 # Keycloakify themes expose the form target in kcContext, classic themes in <form>
 KC_LOGIN_ACTION_RE = re.compile(r'"loginAction":\s*"([^"]+)"')
 KC_FORM_ACTION_RE = re.compile(
@@ -280,7 +281,7 @@ def _find_issuer(school: dict) -> str | None:
         item = stack.pop()
         if isinstance(item, dict):
             for key, value in item.items():
-                if isinstance(value, str) and "realm" in key.lower() and REALM_RE.match(value):
+                if isinstance(value, str) and REALM_RE.match(value):
                     realm = realm or value
                 stack.append(value)
         elif isinstance(item, list):

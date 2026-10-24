@@ -25,7 +25,7 @@
             },
             "token": {
                 "title": "Bearer-Token manuell",
-                "description": "Bearer-Token aus den Browser-Entwicklertools kopieren (Netzwerk-Tab, Authorization-Header einer Anfrage an api.sdui.app). Läuft ab und muss dann manuell ersetzt werden.",
+                "description": "Bearer-Token aus den Browser-Entwicklertools kopieren (Netzwerk-Tab, Authorization-Header einer Anfrage an api.sdui.app). Läuft ab und muss dann manuell ersetzt werden. Gültigkeit nur ca. 5 Minuten – nur zum Testen sinnvoll.",
                 "data": {
                     "token": "Bearer Token",
                     "user_id": "user_id"
@@ -41,6 +41,13 @@
                 },
                 "data_description": {
                     "slink": "Teil der Login-URL deiner Schule: https://sdui.app/<slink>/login. Die komplette URL geht auch. Falls die Schule nicht erkannt wird: Adresse der Sdui-Anmeldeseite (https://iam.sdui-group.app/realms/...) einfügen."
+                }
+            },
+            "select_user": {
+                "title": "Stundenplan wählen",
+                "description": "Der Account hat mehrere Benutzer (z. B. Kinder). Wessen Stundenplan soll angezeigt werden? Für jedes weitere Kind die Integration erneut hinzufügen.",
+                "data": {
+                    "user_id": "Benutzer"
                 }
             }
         },
@@ -80,10 +87,17 @@
             },
             "token": {
                 "title": "Bearer-Token manuell",
-                "description": "Bearer-Token aus den Browser-Entwicklertools kopieren (Netzwerk-Tab, Authorization-Header einer Anfrage an api.sdui.app). Läuft ab und muss dann manuell ersetzt werden.",
+                "description": "Bearer-Token aus den Browser-Entwicklertools kopieren (Netzwerk-Tab, Authorization-Header einer Anfrage an api.sdui.app). Läuft ab und muss dann manuell ersetzt werden. Gültigkeit nur ca. 5 Minuten – nur zum Testen sinnvoll.",
                 "data": {
                     "token": "Bearer Token",
                     "user_id": "user_id"
+                }
+            },
+            "select_user": {
+                "title": "Stundenplan wählen",
+                "description": "Der Account hat mehrere Benutzer (z. B. Kinder). Wessen Stundenplan soll angezeigt werden? Für jedes weitere Kind die Integration erneut hinzufügen.",
+                "data": {
+                    "user_id": "Benutzer"
                 }
             }
         },

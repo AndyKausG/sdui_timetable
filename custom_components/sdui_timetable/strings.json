@@ -25,7 +25,7 @@
             },
             "token": {
                 "title": "Manual Bearer token",
-                "description": "Copy the Bearer token from your browser's developer tools (Network tab, Authorization header of a request to api.sdui.app). It expires and must then be replaced manually.",
+                "description": "Copy the Bearer token from your browser's developer tools (Network tab, Authorization header of a request to api.sdui.app). It expires and must then be replaced manually. Valid for about 5 minutes only – useful for testing only.",
                 "data": {
                     "token": "Bearer Token",
                     "user_id": "user_id"
@@ -41,6 +41,13 @@
                 },
                 "data_description": {
                     "slink": "Part of your school login URL: https://sdui.app/<slink>/login. The full URL also works. If login fails with 'school not found', paste the address of the Sdui login page (https://iam.sdui-group.app/realms/...) instead."
+                }
+            },
+            "select_user": {
+                "title": "Choose timetable",
+                "description": "This account has several users (e.g. children). Whose timetable should be shown? Add the integration again for each further child.",
+                "data": {
+                    "user_id": "User"
                 }
             }
         },
@@ -80,10 +87,17 @@
             },
             "token": {
                 "title": "Manual Bearer token",
-                "description": "Copy the Bearer token from your browser's developer tools (Network tab, Authorization header of a request to api.sdui.app). It expires and must then be replaced manually.",
+                "description": "Copy the Bearer token from your browser's developer tools (Network tab, Authorization header of a request to api.sdui.app). It expires and must then be replaced manually. Valid for about 5 minutes only – useful for testing only.",
                 "data": {
                     "token": "Bearer Token",
                     "user_id": "user_id"
+                }
+            },
+            "select_user": {
+                "title": "Choose timetable",
+                "description": "This account has several users (e.g. children). Whose timetable should be shown? Add the integration again for each further child.",
+                "data": {
+                    "user_id": "User"
                 }
             }
         },

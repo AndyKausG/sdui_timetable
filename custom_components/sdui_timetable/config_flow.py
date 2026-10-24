@@ -10,6 +10,9 @@ from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -55,6 +58,44 @@ def _token_schema(defaults: Mapping[str, Any]) -> vol.Schema:
     )
 
 
+CANDIDATES = "_candidates"
+
+
+def _user_label(user: dict) -> str:
+    """Human readable name of a Sdui user."""
+    name = " ".join(
+        str(user[k]) for k in ("firstname", "lastname") if user.get(k)
+    )
+    return name or str(user.get("id"))
+
+
+def _user_candidates(self_user: dict) -> dict[str, str]:
+    """Return {user_id: label} for the account itself and its children."""
+    candidates = {}
+    for child in self_user.get("childs") or []:
+        if isinstance(child, dict) and child.get("id"):
+            candidates[str(child["id"])] = _user_label(child)
+    if self_user.get("id"):
+        candidates[str(self_user["id"])] = f"{_user_label(self_user)} (eigener Account / own account)"
+    return candidates
+
+
+def _select_user_schema(candidates: dict[str, str]) -> vol.Schema:
+    """Schema to choose whose timetable is shown."""
+    return vol.Schema(
+        {
+            vol.Required(CONF_USER_ID, default=next(iter(candidates))): SelectSelector(
+                SelectSelectorConfig(
+                    options=[
+                        SelectOptionDict(value=uid, label=f"{label} ({uid})")
+                        for uid, label in candidates.items()
+                    ]
+                )
+            )
+        }
+    )
+
+
 async def _async_validate(
     hass: HomeAssistant, user_input: dict[str, Any], use_credentials: bool
 ) -> tuple[dict[str, Any] | None, dict[str, str]]:
@@ -69,17 +110,21 @@ async def _async_validate(
             password = user_input[CONF_PASSWORD]
             result = await async_login(slink, username, password)
             credentials = (slink, username, password)
-            if not user_id:
-                client = SduiApiClient.from_login(result, session, "self", credentials)
-                user_id = str((await client.fetch_self()).get("id") or "")
-                if not user_id:
-                    raise SduiApiError("Could not determine user_id from /users/self")
-            client = SduiApiClient.from_login(result, session, user_id, credentials)
             data = {
                 CONF_SLINK: slink,
                 CONF_USERNAME: username,
                 CONF_PASSWORD: password,
             }
+            if not user_id:
+                client = SduiApiClient.from_login(result, session, "self", credentials)
+                candidates = _user_candidates(await client.fetch_self())
+                if not candidates:
+                    raise SduiApiError("Could not determine user_id from /users/self")
+                # Children first: parents usually want a child's timetable
+                user_id = next(iter(candidates))
+                if len(candidates) > 1:
+                    data[CANDIDATES] = candidates
+            client = SduiApiClient.from_login(result, session, user_id, credentials)
         else:
             token = user_input[CONF_TOKEN].strip()
             client = SduiApiClient(token, session, user_id=user_id)
@@ -115,12 +160,28 @@ class SduiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             data, errors = await _async_validate(self.hass, user_input, True)
             if data is not None:
+                if CANDIDATES in data:
+                    self._pending = data
+                    return await self.async_step_select_user()
                 return await self._async_create_or_abort(data)
 
         return self.async_show_form(
             step_id="credentials",
             data_schema=_credentials_schema(user_input or {}),
             errors=errors,
+        )
+
+    async def async_step_select_user(self, user_input=None):
+        """Choose whose timetable is shown (parent accounts)."""
+        candidates = self._pending[CANDIDATES]
+        if user_input is not None:
+            data = {k: v for k, v in self._pending.items() if k != CANDIDATES}
+            data[CONF_USER_ID] = user_input[CONF_USER_ID]
+            return await self._async_create_or_abort(
+                data, candidates.get(user_input[CONF_USER_ID])
+            )
+        return self.async_show_form(
+            step_id="select_user", data_schema=_select_user_schema(candidates)
         )
 
     async def async_step_token(self, user_input=None):
@@ -137,11 +198,13 @@ class SduiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def _async_create_or_abort(self, data: dict[str, Any]):
+    async def _async_create_or_abort(self, data: dict[str, Any], name: str | None = None):
         """Create the entry unless the user is already configured."""
+        data = {k: v for k, v in data.items() if k != CANDIDATES}
         await self.async_set_unique_id(data[CONF_USER_ID])
         self._abort_if_unique_id_configured()
-        return self.async_create_entry(title=f"Sdui (user {data[CONF_USER_ID]})", data=data)
+        title = f"Sdui {name} ({data[CONF_USER_ID]})" if name else f"Sdui (user {data[CONF_USER_ID]})"
+        return self.async_create_entry(title=title, data=data)
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]):
         """Start re-authentication after the token expired or login failed."""
@@ -197,12 +260,26 @@ class SduiOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             data, errors = await _async_validate(self.hass, user_input, True)
             if data is not None:
+                if CANDIDATES in data:
+                    self._pending = data
+                    return await self.async_step_select_user()
                 return self._async_save(data)
 
         return self.async_show_form(
             step_id="credentials",
             data_schema=_credentials_schema(user_input or self.config_entry.data),
             errors=errors,
+        )
+
+    async def async_step_select_user(self, user_input=None):
+        """Choose whose timetable is shown (parent accounts)."""
+        candidates = self._pending[CANDIDATES]
+        if user_input is not None:
+            data = {k: v for k, v in self._pending.items() if k != CANDIDATES}
+            data[CONF_USER_ID] = user_input[CONF_USER_ID]
+            return self._async_save(data)
+        return self.async_show_form(
+            step_id="select_user", data_schema=_select_user_schema(candidates)
         )
 
     async def async_step_token(self, user_input=None):
