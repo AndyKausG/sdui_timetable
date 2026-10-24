@@ -4,6 +4,11 @@ Versioning follows [SemVer](https://semver.org/). The version in
 `custom_components/sdui/manifest.json` must match the release tag (`v1.0.0` ↔ `1.0.0`,
 `v1.0.0b1` ↔ `1.0.0b1` for betas; publish betas as GitHub pre-release).
 
+## 1.0.0b2 (beta)
+
+- Setup dialog reworked: clearer titles and texts, result count in the school list, dropdown for many hits
+- Timetable of the last 7 days is fetched too (calendar shows the past week)
+
 ## 1.0.0b1 (beta)
 
 First release as standalone integration `sdui` (successor of

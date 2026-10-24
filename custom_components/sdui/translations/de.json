@@ -2,79 +2,86 @@
     "config": {
         "step": {
             "user": {
-                "title": "Schule suchen",
-                "description": "Anmeldung mit denselben Zugangsdaten wie auf sdui.app. Bei Eltern-Accounts können alle Kinder auf einmal hinzugefügt werden.",
+                "title": "Sdui verbinden",
+                "description": "Stundenplan, Vertretungen und Ausfälle aus Sdui in Home Assistant.\n\nZuerst die Schule suchen, danach mit den gewohnten Sdui-Zugangsdaten anmelden.",
                 "data": {
                     "school": "Schule"
                 },
                 "data_description": {
-                    "school": "Name, Ort oder Kurzname der Schule (mindestens 3 Zeichen). Die Adresse der Login-Seite der Schule geht auch."
+                    "school": "Name oder Ort der Schule, z. B. „Goethe“ oder „Stuttgart“ (mindestens 3 Zeichen)."
                 }
             },
             "school": {
                 "title": "Schule auswählen",
+                "description": "{count} Treffer für „{term}“. Nicht dabei? Zurück und einen anderen Suchbegriff verwenden.",
                 "data": {
                     "slink": "Schule"
                 }
             },
             "credentials": {
-                "title": "Sdui-Anmeldung",
-                "description": "Anmeldung bei {school}.",
+                "title": "Bei Sdui anmelden",
+                "description": "**{school}**\n\nDieselben Zugangsdaten wie in der Sdui-App bzw. auf sdui.app. Das Passwort wird in Home Assistant gespeichert, damit die Anmeldung automatisch erneuert werden kann.",
                 "data": {
                     "username": "Benutzername oder E-Mail",
                     "password": "Passwort"
                 }
             },
             "students": {
-                "title": "Schüler",
-                "description": "Schüler auswählen, deren Stundenplan angezeigt werden soll. Jeder Schüler bekommt ein eigenes Gerät mit Sensoren und Kalender. Fehlt ein Kind, dessen Stundenplan-ID eintragen (Zahl in der Adresse des Stundenplans auf sdui.app, nach timetable/users/); mehrere IDs mit Komma trennen.",
+                "title": "Schüler auswählen",
+                "description": "Jeder Schüler bekommt ein eigenes Gerät mit Stundenplan-Kalender und Sensoren für Stunden, Vertretungen und Unterrichtsbeginn/-ende.",
                 "data": {
                     "students": "Schüler",
-                    "extra_ids": "Weitere Stundenplan-IDs"
+                    "extra_ids": "Weitere Stundenplan-IDs (optional)"
+                },
+                "data_description": {
+                    "extra_ids": "Nur nötig, wenn ein Kind fehlt: die Zahl in der Adresse des Stundenplans auf sdui.app (…/timetable/users/1234567). Mehrere IDs mit Komma trennen."
                 }
             },
             "reauth_confirm": {
-                "title": "Sdui erneut anmelden",
-                "description": "Die Anmeldung für {account} ist nicht mehr gültig. Sdui-Zugangsdaten eingeben.",
+                "title": "Erneut bei Sdui anmelden",
+                "description": "Die Anmeldung für **{account}** ist abgelaufen oder nicht mehr gültig. Bitte die Sdui-Zugangsdaten erneut eingeben.",
                 "data": {
                     "slink": "Schule",
                     "username": "Benutzername oder E-Mail",
                     "password": "Passwort"
                 },
                 "data_description": {
-                    "slink": "Kurzname der Schule: der Teil nach sdui.app/ in der Adresse der Login-Seite, z. B. meine-schule. Schule suchen über {school_search} – die Adresse der Seite, auf der du landest, enthält den Kurznamen. Die komplette Adresse geht auch."
+                    "slink": "Kurzname der Schule (Teil der Adresse ihrer Sdui-Login-Seite, z. B. meine-schule)."
                 }
             }
         },
         "error": {
-            "invalid_auth": "Anmeldung fehlgeschlagen. Schule, Benutzername und Passwort prüfen.",
-            "cannot_connect": "Keine Verbindung zu Sdui oder Schule nicht gefunden. Details im Home-Assistant-Log.",
-            "unknown": "Unerwarteter Fehler. Home-Assistant-Log prüfen.",
-            "no_students": "Mindestens einen Schüler auswählen.",
-            "invalid_student": "Kein Zugriff auf den Stundenplan einer eingetragenen ID. ID prüfen.",
-            "school_not_found": "Keine Schule gefunden. Anderen Namensteil oder den Ort versuchen.",
-            "search_too_short": "Mindestens 3 Zeichen eingeben."
+            "invalid_auth": "Anmeldung fehlgeschlagen. Bitte Benutzername und Passwort prüfen.",
+            "cannot_connect": "Sdui ist gerade nicht erreichbar. Bitte später erneut versuchen.",
+            "unknown": "Unerwarteter Fehler. Details stehen im Home-Assistant-Log.",
+            "no_students": "Bitte mindestens einen Schüler auswählen.",
+            "invalid_student": "Kein Zugriff auf den Stundenplan einer eingetragenen ID. Bitte ID prüfen.",
+            "school_not_found": "Keine Schule gefunden. Bitte einen anderen Teil des Namens oder den Ort versuchen.",
+            "search_too_short": "Bitte mindestens 3 Zeichen eingeben."
         },
         "abort": {
             "already_configured": "Dieser Sdui-Account ist bereits eingerichtet.",
-            "reauth_successful": "Erneute Anmeldung erfolgreich.",
+            "reauth_successful": "Anmeldung erfolgreich erneuert.",
             "wrong_account": "Diese Zugangsdaten gehören zu einem anderen Sdui-Account."
         }
     },
     "options": {
         "step": {
             "init": {
-                "title": "Schüler",
-                "description": "Schüler auswählen, deren Stundenplan angezeigt werden soll. Jeder Schüler bekommt ein eigenes Gerät mit Sensoren und Kalender. Fehlt ein Kind, dessen Stundenplan-ID eintragen (Zahl in der Adresse des Stundenplans auf sdui.app, nach timetable/users/); mehrere IDs mit Komma trennen.",
+                "title": "Schüler auswählen",
+                "description": "Jeder Schüler bekommt ein eigenes Gerät mit Stundenplan-Kalender und Sensoren für Stunden, Vertretungen und Unterrichtsbeginn/-ende.",
                 "data": {
                     "students": "Schüler",
-                    "extra_ids": "Weitere Stundenplan-IDs"
+                    "extra_ids": "Weitere Stundenplan-IDs (optional)"
+                },
+                "data_description": {
+                    "extra_ids": "Nur nötig, wenn ein Kind fehlt: die Zahl in der Adresse des Stundenplans auf sdui.app (…/timetable/users/1234567). Mehrere IDs mit Komma trennen."
                 }
             }
         },
         "error": {
-            "no_students": "Mindestens einen Schüler auswählen.",
-            "invalid_student": "Kein Zugriff auf den Stundenplan einer eingetragenen ID. ID prüfen."
+            "no_students": "Bitte mindestens einen Schüler auswählen.",
+            "invalid_student": "Kein Zugriff auf den Stundenplan einer eingetragenen ID. Bitte ID prüfen."
         }
     },
     "entity": {

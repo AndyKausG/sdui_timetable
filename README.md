@@ -18,7 +18,7 @@ Not affiliated with Sdui GmbH.
   - substitutions/cancellations today and on the next school day
   - next school day, school start/end today and on the next school day (cancelled lessons are ignored)
 - Event `sdui_timetable_change` for every new substitution or cancellation (for notifications)
-- Updates every 30 minutes, timetable for the next 14 days
+- Updates every 30 minutes, timetable of the last 7 and the next 14 days
 
 ## Installation via HACS
 1. **HACS → ⋮ → Custom repositories**, add `https://github.com/AndyKausG/sdui_timetable`, type **Integration**.
