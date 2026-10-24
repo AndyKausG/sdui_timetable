@@ -442,9 +442,17 @@ class SduiApiClient:
                 raise SduiApiError(f"Network error: {exc}") from exc
         raise SduiAuthError("Authentication failed after re-login")
 
+    async def fetch_raw(self, path: str, params: dict | None = None) -> dict:
+        """GET an API path and return the full JSON response (diagnostics)."""
+        return await self._get(path, params)
+
     async def fetch_self(self) -> dict:
         """Return the logged-in user (GET /users/self)."""
         return (await self._get("/users/self")).get("data") or {}
+
+    async def fetch_family(self) -> object:
+        """Return the family of the logged-in user (GET /users/self/family)."""
+        return (await self._get("/users/self/family")).get("data")
 
     async def fetch_user(self, user_id: str) -> dict:
         """Return a user (GET /users/{id})."""
@@ -457,4 +465,16 @@ class SduiApiClient:
         path = f"/timetables/users/{user_id}/timetable"
         _LOGGER.debug("Fetching timetable: %s %s-%s", path, begins_at, ends_at)
         data = await self._get(path, {"begins_at": begins_at, "ends_at": ends_at})
-        return (data.get("data") or {}).get("lessons", [])
+        payload = data.get("data")
+        if isinstance(payload, dict) and isinstance(payload.get("lessons"), list):
+            return payload["lessons"]
+        if isinstance(payload, list):
+            return payload
+        # Visible without debug logging: an empty timetable is otherwise silent
+        _LOGGER.warning(
+            "Unexpected timetable response for user %s: top-level keys %s, data %s",
+            user_id,
+            sorted(data),
+            sorted(payload) if isinstance(payload, dict) else type(payload).__name__,
+        )
+        return []
