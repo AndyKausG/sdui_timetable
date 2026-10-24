@@ -72,6 +72,25 @@ def _students_of(self_user: dict) -> dict[str, str]:
     return children or {str(self_user["id"]): _user_name(self_user)}
 
 
+async def _async_fetch_account(client: SduiApiClient) -> dict:
+    """Return the logged-in user including its children if available."""
+    self_user = await client.fetch_self()
+    if not self_user.get("id"):
+        raise SduiApiError("Could not read the account (/users/self)")
+    if not (self_user.get("childs") or self_user.get("children")):
+        # sdui.app lists the children (childs[].id) of a parent account; they
+        # may only be part of the full user object
+        try:
+            full = await client.fetch_user(str(self_user["id"]))
+        except (SduiAuthError, SduiApiError) as exc:
+            _LOGGER.debug("Could not read /users/%s: %s", self_user["id"], exc)
+        else:
+            for key in ("childs", "children"):
+                if full.get(key):
+                    self_user = {**self_user, key: full[key]}
+    return self_user
+
+
 def _students_schema(available: dict[str, str], selected: list[str]) -> vol.Schema:
     """Multi-select of the students plus free input of further timetable ids."""
     return vol.Schema(
@@ -124,9 +143,7 @@ async def _async_login(
         credentials,
         login=await async_login(*credentials),
     )
-    self_user = await client.fetch_self()
-    if not self_user.get("id"):
-        raise SduiApiError("Could not read the account (/users/self)")
+    self_user = await _async_fetch_account(client)
     data = {
         CONF_SLINK: slink,
         CONF_USERNAME: username,
@@ -253,7 +270,7 @@ class SduiOptionsFlow(OptionsFlow):
 
         client = entry.runtime_data.client
         try:
-            self_user = await client.fetch_self()
+            self_user = await _async_fetch_account(client)
             available = {**current, **_students_of(self_user)}
         except Exception as exc:  # noqa: BLE001
             # Offline: offer at least the current selection
