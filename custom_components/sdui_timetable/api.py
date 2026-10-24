@@ -275,6 +275,15 @@ async def _login_idp(
 
 def _find_issuer(school: dict) -> str | None:
     """Find the Keycloak issuer (https://iam.../realms/<realm>) in school data."""
+    # Known format: meta.group_iam[].uri / realm_id
+    for iam in (school.get("meta") or {}).get("group_iam") or []:
+        if not isinstance(iam, dict):
+            continue
+        if match := ISSUER_RE.search(iam.get("uri") or ""):
+            return match.group(1)
+        if REALM_RE.match(iam.get("realm_id") or ""):
+            return f"{IAM_BASE}/realms/{iam['realm_id']}"
+    # Fallback: search the whole response
     stack: list = [school]
     realm = None
     while stack:
