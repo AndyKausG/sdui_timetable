@@ -14,7 +14,7 @@ First release as standalone integration `sdui` (successor of
 - Per student: calendar, next lesson, lessons today, substitutions/cancellations today and on the
   next school day, next school day, school start/end today and on the next school day
 - Event `sdui_timetable_change` for new substitutions/cancellations
-- Link to the Sdui school search in the setup dialog
+- School search in the setup dialog (name, city or slink)
 - Children of parent accounts detected via /users/self/family; timetable ids can also be entered manually
 - Diagnostics download with the shape of the API responses (no personal data)
 - German and English translations

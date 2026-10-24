@@ -15,6 +15,7 @@ FETCH_DAYS = 14
 
 CONF_TOKEN = "token"
 CONF_SLINK = "slink"
+CONF_SCHOOL = "school"  # search term in the setup form
 CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 CONF_ACCOUNT_ID = "account_id"
