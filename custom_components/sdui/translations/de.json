@@ -10,7 +10,7 @@
                     "password": "Passwort"
                 },
                 "data_description": {
-                    "slink": "Kurzname der Schule, also der Teil nach sdui.app/ in der Login-Seite (https://sdui.app/<slink>/login). Die komplette URL geht auch."
+                    "slink": "Kurzname der Schule, also der Teil nach sdui.app/ in der Login-Seite (z. B. https://sdui.app/meine-schule/login → meine-schule). Die komplette URL geht auch."
                 }
             },
             "students": {
@@ -29,7 +29,7 @@
                     "password": "Passwort"
                 },
                 "data_description": {
-                    "slink": "Kurzname der Schule, also der Teil nach sdui.app/ in der Login-Seite (https://sdui.app/<slink>/login). Die komplette URL geht auch."
+                    "slink": "Kurzname der Schule, also der Teil nach sdui.app/ in der Login-Seite (z. B. https://sdui.app/meine-schule/login → meine-schule). Die komplette URL geht auch."
                 }
             }
         },
