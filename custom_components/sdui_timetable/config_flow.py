@@ -67,18 +67,14 @@ async def _async_validate(
             slink = normalize_slink(user_input[CONF_SLINK])
             username = user_input[CONF_USERNAME].strip()
             password = user_input[CONF_PASSWORD]
-            token = await async_login(slink, username, password)
-            client = SduiApiClient(
-                token, session, user_id=user_id or None,
-                credentials=(slink, username, password),
-            )
+            result = await async_login(slink, username, password)
+            credentials = (slink, username, password)
             if not user_id:
-                self_user = await client.fetch_self()
-                user_id = str(self_user.get("id") or client.user_id)
-                client = SduiApiClient(
-                    token, session, user_id=user_id,
-                    credentials=(slink, username, password),
-                )
+                client = SduiApiClient.from_login(result, session, "self", credentials)
+                user_id = str((await client.fetch_self()).get("id") or "")
+                if not user_id:
+                    raise SduiApiError("Could not determine user_id from /users/self")
+            client = SduiApiClient.from_login(result, session, user_id, credentials)
             data = {
                 CONF_SLINK: slink,
                 CONF_USERNAME: username,

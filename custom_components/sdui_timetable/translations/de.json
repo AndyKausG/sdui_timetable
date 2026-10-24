@@ -19,7 +19,7 @@
                     "user_id": "Stundenplan-user_id (optional)"
                 },
                 "data_description": {
-                    "slink": "Teil der Login-URL deiner Schule: https://sdui.app/<slink>/login. Die komplette URL geht auch.",
+                    "slink": "Teil der Login-URL deiner Schule: https://sdui.app/<slink>/login. Die komplette URL geht auch. Falls die Schule nicht erkannt wird: Adresse der Sdui-Anmeldeseite (https://iam.sdui-group.app/realms/...) einfügen.",
                     "user_id": "Leer = eigener Account. Eltern: ID des Kindes aus https://sdui.app/timetable/users/<user_id> eintragen."
                 }
             },
@@ -40,7 +40,7 @@
                     "password": "Passwort"
                 },
                 "data_description": {
-                    "slink": "Teil der Login-URL deiner Schule: https://sdui.app/<slink>/login. Die komplette URL geht auch."
+                    "slink": "Teil der Login-URL deiner Schule: https://sdui.app/<slink>/login. Die komplette URL geht auch. Falls die Schule nicht erkannt wird: Adresse der Sdui-Anmeldeseite (https://iam.sdui-group.app/realms/...) einfügen."
                 }
             }
         },
@@ -74,7 +74,7 @@
                     "user_id": "Stundenplan-user_id (optional)"
                 },
                 "data_description": {
-                    "slink": "Teil der Login-URL deiner Schule: https://sdui.app/<slink>/login. Die komplette URL geht auch.",
+                    "slink": "Teil der Login-URL deiner Schule: https://sdui.app/<slink>/login. Die komplette URL geht auch. Falls die Schule nicht erkannt wird: Adresse der Sdui-Anmeldeseite (https://iam.sdui-group.app/realms/...) einfügen.",
                     "user_id": "Leer = eigener Account. Eltern: ID des Kindes aus https://sdui.app/timetable/users/<user_id> eintragen."
                 }
             },

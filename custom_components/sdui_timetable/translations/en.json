@@ -19,7 +19,7 @@
                     "user_id": "Timetable user_id (optional)"
                 },
                 "data_description": {
-                    "slink": "Part of your school login URL: https://sdui.app/<slink>/login. The full URL also works.",
+                    "slink": "Part of your school login URL: https://sdui.app/<slink>/login. The full URL also works. If login fails with 'school not found', paste the address of the Sdui login page (https://iam.sdui-group.app/realms/...) instead.",
                     "user_id": "Leave empty to use your own account. Parents: enter the child's id from https://sdui.app/timetable/users/<user_id>."
                 }
             },
@@ -40,7 +40,7 @@
                     "password": "Password"
                 },
                 "data_description": {
-                    "slink": "Part of your school login URL: https://sdui.app/<slink>/login. The full URL also works."
+                    "slink": "Part of your school login URL: https://sdui.app/<slink>/login. The full URL also works. If login fails with 'school not found', paste the address of the Sdui login page (https://iam.sdui-group.app/realms/...) instead."
                 }
             }
         },
@@ -74,7 +74,7 @@
                     "user_id": "Timetable user_id (optional)"
                 },
                 "data_description": {
-                    "slink": "Part of your school login URL: https://sdui.app/<slink>/login. The full URL also works.",
+                    "slink": "Part of your school login URL: https://sdui.app/<slink>/login. The full URL also works. If login fails with 'school not found', paste the address of the Sdui login page (https://iam.sdui-group.app/realms/...) instead.",
                     "user_id": "Leave empty to use your own account. Parents: enter the child's id from https://sdui.app/timetable/users/<user_id>."
                 }
             },

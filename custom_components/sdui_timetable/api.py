@@ -6,16 +6,19 @@ import base64
 import html
 import json
 import logging
+import hashlib
 import re
+import secrets
 import time
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from datetime import datetime
 from urllib.parse import parse_qs, quote, urljoin, urlparse
 
 import aiohttp
 from yarl import URL
 
-from .const import API_BASE, IDP_RETURN_URL
+from .const import API_BASE, IAM_BASE, IAM_CLIENT_ID, IAM_REDIRECT_URI, IDP_RETURN_URL
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,13 +48,29 @@ BROWSER_HEADERS = {
 TIMEOUT = aiohttp.ClientTimeout(total=30)
 REDIRECT_HOP_LIMIT = 8
 # Renew the token this many seconds before it expires
-TOKEN_EXPIRY_MARGIN = 300
+TOKEN_EXPIRY_MARGIN = 60
 
 META_REFRESH_RE = re.compile(
     r"<meta[^>]+http-equiv=[\"']?refresh[\"']?[^>]*content=[\"'][^\"']*url=([^\"'>]+)[\"']",
     re.IGNORECASE,
 )
 CSRF_TOKEN_RE = re.compile(r'"csrfToken":"([^"]+)"', re.IGNORECASE)
+ISSUER_RE = re.compile(r"(https://[^\s\"'/]+/(?:auth/)?realms/[^\s\"'/?#]+)")
+REALM_RE = re.compile(r"^s-[0-9a-f]{8,}$")
+# Keycloakify themes expose the form target in kcContext, classic themes in <form>
+KC_LOGIN_ACTION_RE = re.compile(r'"loginAction":\s*"([^"]+)"')
+KC_FORM_ACTION_RE = re.compile(
+    r'<form[^>]+id="kc-form-login"[^>]+action="([^"]+)"', re.IGNORECASE
+)
+
+
+@dataclass
+class LoginResult:
+    """Tokens obtained by a login."""
+
+    access_token: str
+    refresh_token: str | None = None
+    token_url: str | None = None
 
 
 class SduiAuthError(Exception):
@@ -90,8 +109,14 @@ def token_expires_at(token: str) -> float | None:
 
 
 def normalize_slink(value: str) -> str:
-    """Turn a school URL (https://sdui.app/<slink>/login) or slink into a slink."""
+    """Turn a school URL (https://sdui.app/<slink>/login) or slink into a slink.
+
+    A Keycloak login URL (https://iam.../realms/<realm>/...) is reduced to its
+    issuer URL and used directly for the OIDC login.
+    """
     value = value.strip()
+    if match := ISSUER_RE.search(value):
+        return match.group(1)
     if "://" in value or value.startswith("sdui.app"):
         if "://" not in value:
             value = f"https://{value}"
@@ -247,19 +272,171 @@ async def _login_idp(
     return token
 
 
-async def async_login(slink: str, username: str, password: str) -> str:
-    """Log in with school slink + credentials and return a Bearer token.
+def _find_issuer(school: dict) -> str | None:
+    """Find the Keycloak issuer (https://iam.../realms/<realm>) in school data."""
+    stack: list = [school]
+    realm = None
+    while stack:
+        item = stack.pop()
+        if isinstance(item, dict):
+            for key, value in item.items():
+                if isinstance(value, str) and "realm" in key.lower() and REALM_RE.match(value):
+                    realm = realm or value
+                stack.append(value)
+        elif isinstance(item, list):
+            stack.extend(item)
+        elif isinstance(item, str) and (match := ISSUER_RE.search(item)):
+            return match.group(1)
+    return f"{IAM_BASE}/realms/{realm}" if realm else None
 
-    Schools with an external identity provider use the SSO bridge first;
-    the classic password login is used as fallback.
+
+def _pkce_pair() -> tuple[str, str]:
+    """Return (code_verifier, code_challenge) for PKCE S256."""
+    verifier = secrets.token_urlsafe(64)
+    digest = hashlib.sha256(verifier.encode()).digest()
+    return verifier, base64.urlsafe_b64encode(digest).decode().rstrip("=")
+
+
+async def _token_request(
+    session: aiohttp.ClientSession, token_url: str, data: dict
+) -> LoginResult:
+    """POST to the OIDC token endpoint."""
+    async with session.post(
+        token_url, data={"client_id": IAM_CLIENT_ID, **data}, timeout=TIMEOUT
+    ) as resp:
+        body = await resp.json(content_type=None)
+        if resp.status in (400, 401):
+            raise SduiAuthError(
+                f"Token request rejected: {body.get('error')} {body.get('error_description', '')}"
+            )
+        if resp.status != 200:
+            raise SduiApiError(f"Token request failed with status {resp.status}")
+    if not body.get("access_token"):
+        raise SduiApiError("Token response contains no access token")
+    return LoginResult(body["access_token"], body.get("refresh_token"), token_url)
+
+
+async def _login_keycloak(
+    session: aiohttp.ClientSession, issuer: str, username: str, password: str
+) -> LoginResult:
+    """OIDC authorization code flow with PKCE against the Sdui Keycloak."""
+    verifier, challenge = _pkce_pair()
+    oidc = f"{issuer}/protocol/openid-connect"
+    async with session.get(
+        f"{oidc}/auth",
+        params={
+            "client_id": IAM_CLIENT_ID,
+            "redirect_uri": IAM_REDIRECT_URI,
+            "response_type": "code",
+            "scope": "openid offline_access",
+            "state": secrets.token_hex(16),
+            "nonce": secrets.token_hex(16),
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
+        },
+        headers=BROWSER_HEADERS,
+    ) as resp:
+        if resp.status == 400:
+            # offline_access may not be allowed for the client: retry without
+            page = None
+        else:
+            page = await resp.text()
+            if resp.status != 200:
+                raise SduiApiError(f"Login page returned status {resp.status}")
+    if page is None:
+        async with session.get(
+            f"{oidc}/auth",
+            params={
+                "client_id": IAM_CLIENT_ID,
+                "redirect_uri": IAM_REDIRECT_URI,
+                "response_type": "code",
+                "scope": "openid",
+                "state": secrets.token_hex(16),
+                "code_challenge": challenge,
+                "code_challenge_method": "S256",
+            },
+            headers=BROWSER_HEADERS,
+        ) as resp:
+            page = await resp.text()
+            if resp.status != 200:
+                raise SduiApiError(f"Login page returned status {resp.status}")
+
+    match = KC_LOGIN_ACTION_RE.search(page) or KC_FORM_ACTION_RE.search(page)
+    if not match:
+        raise SduiApiError("Keycloak login form not found")
+    action = html.unescape(match.group(1).replace("\\/", "/"))
+    _LOGGER.debug("Keycloak login action: %s", action.split("?")[0])
+
+    async with session.post(
+        action,
+        data={"username": username, "password": password, "credentialId": ""},
+        headers=BROWSER_HEADERS,
+        allow_redirects=False,
+    ) as resp:
+        location = _location(resp)
+        status = resp.status
+    if not location or not location.startswith(IAM_REDIRECT_URI):
+        _LOGGER.debug("Keycloak login: status %s, location %s", status, location)
+        raise SduiAuthError("Keycloak rejected the credentials")
+
+    query = parse_qs(urlparse(location).query)
+    if "code" not in query:
+        raise SduiAuthError(f"Keycloak returned no code: {query.get('error')}")
+
+    return await _token_request(
+        session,
+        f"{oidc}/token",
+        {
+            "grant_type": "authorization_code",
+            "code": query["code"][0],
+            "redirect_uri": IAM_REDIRECT_URI,
+            "code_verifier": verifier,
+        },
+    )
+
+
+async def async_refresh(
+    session: aiohttp.ClientSession, token_url: str, refresh_token: str
+) -> LoginResult:
+    """Renew tokens with a Keycloak refresh token."""
+    try:
+        result = await _token_request(
+            session,
+            token_url,
+            {"grant_type": "refresh_token", "refresh_token": refresh_token},
+        )
+    except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
+        raise SduiApiError(f"Network error: {exc}") from exc
+    # Keycloak may not rotate the refresh token
+    result.refresh_token = result.refresh_token or refresh_token
+    return result
+
+
+async def async_login(slink: str, username: str, password: str) -> LoginResult:
+    """Log in with school slink + credentials and return the tokens.
+
+    Order: Keycloak (OIDC) if the school has a realm, then the external
+    identity provider bridge, then the classic password login.
     """
-    # Own session: the SSO bridge relies on cookies, which must not leak
+    # Own session: the login flows rely on cookies, which must not leak
     # into Home Assistant's shared client session.
     async with aiohttp.ClientSession(
         cookie_jar=aiohttp.CookieJar(), timeout=TIMEOUT
     ) as session:
         try:
+            if slink.startswith("https://"):
+                return await _login_keycloak(session, slink, username, password)
+
             school = await _find_school(session, slink)
+            issuer = _find_issuer(school)
+            if issuer is not None:
+                _LOGGER.debug("Using Keycloak login: %s", issuer)
+                return await _login_keycloak(session, issuer, username, password)
+            _LOGGER.debug(
+                "No Keycloak realm in school data (keys: %s, meta keys: %s)",
+                list(school), list((school.get("meta") or {})),
+            )
+
             providers = (school.get("meta") or {}).get(
                 "external_identity_providers"
             ) or []
@@ -268,13 +445,19 @@ async def async_login(slink: str, username: str, password: str) -> str:
                 None,
             )
             if idp_uri is None:
-                return await _login_password(session, slink, username, password)
+                return LoginResult(
+                    await _login_password(session, slink, username, password)
+                )
             try:
-                return await _login_idp(session, slink, username, password, idp_uri)
+                return LoginResult(
+                    await _login_idp(session, slink, username, password, idp_uri)
+                )
             except (SduiAuthError, SduiApiError) as idp_exc:
                 _LOGGER.debug("SSO login failed (%s), trying password login", idp_exc)
                 try:
-                    return await _login_password(session, slink, username, password)
+                    return LoginResult(
+                        await _login_password(session, slink, username, password)
+                    )
                 except SduiAuthError:
                     raise idp_exc from None
         except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
@@ -298,6 +481,8 @@ class SduiApiClient:
         token_callback: called with a freshly obtained token (for persisting).
         """
         self._token = token
+        self._refresh_token: str | None = None
+        self._token_url: str | None = None
         self._session = session
         self._credentials = credentials
         self._token_callback = token_callback
@@ -320,6 +505,25 @@ class SduiApiClient:
         """Return the current Bearer token."""
         return self._token
 
+    def _apply(self, result: LoginResult) -> None:
+        """Take over tokens from a login or refresh."""
+        self._token = result.access_token
+        self._refresh_token = result.refresh_token
+        self._token_url = result.token_url
+
+    @classmethod
+    def from_login(
+        cls,
+        result: LoginResult,
+        session: aiohttp.ClientSession,
+        user_id: str | None,
+        credentials: tuple[str, str, str],
+    ) -> SduiApiClient:
+        """Create a client from a fresh login result."""
+        client = cls(result.access_token, session, user_id=user_id, credentials=credentials)
+        client._apply(result)
+        return client
+
     def _auth_headers(self) -> dict:
         """Return headers including Authorization."""
         return {**HEADERS, "Authorization": f"Bearer {self._token}"}
@@ -339,8 +543,19 @@ class SduiApiClient:
             # Another caller already renewed the token
             if stale_token is not None and self._token != stale_token:
                 return
-            _LOGGER.debug("Logging in to Sdui to obtain a new token")
-            self._token = await async_login(*self._credentials)
+            result = None
+            if self._refresh_token and self._token_url:
+                try:
+                    result = await async_refresh(
+                        self._session, self._token_url, self._refresh_token
+                    )
+                    _LOGGER.debug("Token renewed with refresh token")
+                except SduiAuthError as exc:
+                    _LOGGER.debug("Refresh token rejected (%s), logging in again", exc)
+            if result is None:
+                _LOGGER.debug("Logging in to Sdui to obtain a new token")
+                result = await async_login(*self._credentials)
+            self._apply(result)
             if self._token_callback is not None:
                 result = self._token_callback(self._token)
                 if result is not None:
