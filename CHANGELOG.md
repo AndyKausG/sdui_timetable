@@ -7,6 +7,8 @@ Versioning follows [SemVer](https://semver.org/). The version in
 ## 1.0.0b3 (beta)
 
 - Integration icon and logo (`brand/`, shown by Home Assistant 2026.3 and newer)
+- Calendar event description: no "Stunde" line if the school sends no lesson number, room only as location
+- README: example for the Timetable Card
 
 ## 1.0.0b2 (beta)
 
