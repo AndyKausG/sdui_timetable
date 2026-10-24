@@ -19,19 +19,36 @@ A custom Home Assistant integration to display your school timetable from SDUI.
    `https://github.com/topergamesyt/sdui_timetable`  
    and select **Integration**.
 3. Install the integration.
-4. Add the following to your `configuration.yaml`:
+4. Restart Home Assistant and add the integration via **Settings → Devices & Services → Add Integration → SDUI Timetable**.
 
-```yaml
-sensor:
-  - platform: sdui_timetable
-    user_id: "your_user_id"
-    token: "your_token"
-```
-5. Find your user id in your links to your timetable in the SDUI app.
+## Login
+
+### Username & password (recommended)
+Choose **Username & password** and enter:
+
+| Field | Value |
+|---|---|
+| School | the *slink* of your school, i.e. the part after `sdui.app/` in your school's login page, e.g. `https://sdui.app/my-school/login` → `my-school` (pasting the full URL works too) |
+| Username or e-mail | the same login you use on sdui.app |
+| Password | your Sdui password |
+| Timetable user_id (optional) | leave empty to use your own account. Parents who want a child's timetable enter the child's id from `https://sdui.app/timetable/users/<user_id>` |
+
+Both login variants are supported:
+- schools using the classic Sdui login (username/password directly on sdui.app)
+- schools using an external identity provider (**"Einloggen mit …"** / WebUntis SSO); the integration runs the same redirect flow as the browser
+
+The token is renewed automatically before it expires and whenever the API answers with 401. Credentials are stored in the config entry (like other cloud integrations). If the login fails permanently (e.g. password changed), Home Assistant shows a **re-authenticate** prompt.
+
+Existing token-only entries keep working until the token expires; the re-authenticate prompt then lets you switch to username & password. You can also switch any time via **Configure** (gear icon).
+
+### Bearer token (manual, fallback)
+Choose **Bearer token** and enter the token and your user_id. The token expires and must then be replaced manually.
+
+Find your user id in the link to your timetable:
 
 https:// sdui.app/timetable/users/**your_user_id**?viewType=week&daysToShow=5&startDate=2025-09-01
 
-6. Find your token in your browser.
+Find your token in your browser (developer tools → Network → request to `api.sdui.app` → `Authorization: Bearer …`).
 
 ![1](/assets/1.png)
 
@@ -40,3 +57,12 @@ https:// sdui.app/timetable/users/**your_user_id**?viewType=week&daysToShow=5&st
 ![3](/assets/3.png)
 
 ![4](/assets/4.png)
+
+## Troubleshooting
+Enable debug logging to see each login step:
+
+```yaml
+logger:
+  logs:
+    custom_components.sdui_timetable: debug
+```

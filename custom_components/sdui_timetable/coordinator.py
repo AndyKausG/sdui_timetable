@@ -4,8 +4,8 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 
-import aiohttp
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import SduiApiClient, SduiApiError, SduiAuthError
@@ -121,7 +121,8 @@ class SduiCoordinator(DataUpdateCoordinator):
                 end.strftime("%Y-%m-%d"),
             )
         except SduiAuthError as exc:
-            raise UpdateFailed(f"Authentication error: {exc}") from exc
+            # Triggers the re-authentication flow in the UI
+            raise ConfigEntryAuthFailed(f"Authentication error: {exc}") from exc
         except SduiApiError as exc:
             raise UpdateFailed(f"API error: {exc}") from exc
 
