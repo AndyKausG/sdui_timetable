@@ -82,6 +82,9 @@ logger:
     custom_components.sdui: debug
 ```
 
+## Icon
+The icon is shipped in `custom_components/sdui/brand/` and shown on the integrations page from Home Assistant 2026.3. The HACS dashboard may still show a placeholder until HACS supports local brand images.
+
 ## Credits & license
 Based on [ToperGamesYT/sdui_timetable](https://github.com/ToperGamesYT/sdui_timetable) (lesson parsing, calendar idea).
 Licensed under GPLv3, see [LICENSE](LICENSE).
