@@ -134,6 +134,59 @@ async def _find_school(session: aiohttp.ClientSession, slink: str) -> dict:
     return data
 
 
+# Query parameter names tried for the public school search (/leads)
+SCHOOL_SEARCH_PARAMS = ("search", "keyword", "q", "query", "name")
+
+
+async def async_search_schools(
+    session: aiohttp.ClientSession, term: str
+) -> list[dict]:
+    """Search schools by name, city or slink (public, no login needed).
+
+    Results are filtered locally, so a parameter the API ignores (and
+    answers with an unfiltered list) does not produce wrong hits.
+    """
+    words = term.casefold().split()
+    # Several words ("name city"): the API may only match one of them
+    queries = [term] + ([max(term.split(), key=len)] if len(words) > 1 else [])
+    try:
+        for query, param in ((q, p) for q in queries for p in SCHOOL_SEARCH_PARAMS):
+            async with session.get(
+                f"{API_BASE}/leads", params={param: query}, headers=HEADERS, timeout=TIMEOUT
+            ) as resp:
+                if resp.status != 200:
+                    continue
+                data = (await resp.json()).get("data")
+            if not isinstance(data, list):
+                continue
+            hits = [
+                school
+                for school in data
+                if isinstance(school, dict)
+                and school.get("slink")
+                and all(
+                    word in " ".join(
+                        str(school.get(k) or "") for k in ("name", "city", "slink")
+                    ).casefold()
+                    for word in words
+                )
+            ]
+            if hits:
+                _LOGGER.debug("School search via ?%s=%s: %d hits", param, query, len(hits))
+                return hits
+    except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
+        raise SduiApiError(f"Network error: {exc}") from exc
+    return []
+
+
+async def async_find_school(session: aiohttp.ClientSession, slink: str) -> dict:
+    """Look up a school by slink (public, no login needed)."""
+    try:
+        return await _find_school(session, slink)
+    except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
+        raise SduiApiError(f"Network error: {exc}") from exc
+
+
 async def _login_password(
     session: aiohttp.ClientSession, slink: str, username: str, password: str
 ) -> str:

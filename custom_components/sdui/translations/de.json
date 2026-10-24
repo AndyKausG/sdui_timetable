@@ -2,15 +2,27 @@
     "config": {
         "step": {
             "user": {
-                "title": "Sdui-Anmeldung",
+                "title": "Schule suchen",
                 "description": "Anmeldung mit denselben Zugangsdaten wie auf sdui.app. Bei Eltern-Accounts können alle Kinder auf einmal hinzugefügt werden.",
                 "data": {
-                    "slink": "Schule",
-                    "username": "Benutzername oder E-Mail",
-                    "password": "Passwort"
+                    "school": "Schule"
                 },
                 "data_description": {
-                    "slink": "Kurzname der Schule: der Teil nach sdui.app/ in der Adresse der Login-Seite, z. B. meine-schule. Schule suchen über {school_search} – die Adresse der Seite, auf der du landest, enthält den Kurznamen. Die komplette Adresse geht auch."
+                    "school": "Name, Ort oder Kurzname der Schule (mindestens 3 Zeichen). Die Adresse der Login-Seite der Schule geht auch."
+                }
+            },
+            "school": {
+                "title": "Schule auswählen",
+                "data": {
+                    "slink": "Schule"
+                }
+            },
+            "credentials": {
+                "title": "Sdui-Anmeldung",
+                "description": "Anmeldung bei {school}.",
+                "data": {
+                    "username": "Benutzername oder E-Mail",
+                    "password": "Passwort"
                 }
             },
             "students": {
@@ -39,7 +51,9 @@
             "cannot_connect": "Keine Verbindung zu Sdui oder Schule nicht gefunden. Details im Home-Assistant-Log.",
             "unknown": "Unerwarteter Fehler. Home-Assistant-Log prüfen.",
             "no_students": "Mindestens einen Schüler auswählen.",
-            "invalid_student": "Kein Zugriff auf den Stundenplan einer eingetragenen ID. ID prüfen."
+            "invalid_student": "Kein Zugriff auf den Stundenplan einer eingetragenen ID. ID prüfen.",
+            "school_not_found": "Keine Schule gefunden. Anderen Namensteil oder den Ort versuchen.",
+            "search_too_short": "Mindestens 3 Zeichen eingeben."
         },
         "abort": {
             "already_configured": "Dieser Sdui-Account ist bereits eingerichtet.",

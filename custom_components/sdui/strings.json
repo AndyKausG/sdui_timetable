@@ -2,15 +2,27 @@
     "config": {
         "step": {
             "user": {
-                "title": "Sdui login",
+                "title": "Find your school",
                 "description": "Log in with the same credentials you use on sdui.app. Parent accounts can add all children at once.",
                 "data": {
-                    "slink": "School",
-                    "username": "Username or e-mail",
-                    "password": "Password"
+                    "school": "School"
                 },
                 "data_description": {
-                    "slink": "Slink of your school: the part after sdui.app/ in the address of its login page, e.g. my-school. Search your school at {school_search} – the address of the page you land on contains the slink. The full address works too."
+                    "school": "Name, city or slink of the school (at least 3 characters). The address of the school's login page works too."
+                }
+            },
+            "school": {
+                "title": "Choose your school",
+                "data": {
+                    "slink": "School"
+                }
+            },
+            "credentials": {
+                "title": "Sdui login",
+                "description": "Log in at {school}.",
+                "data": {
+                    "username": "Username or e-mail",
+                    "password": "Password"
                 }
             },
             "students": {
@@ -39,7 +51,9 @@
             "cannot_connect": "Could not connect to Sdui or school not found. Details in the Home Assistant log.",
             "unknown": "Unexpected error. Check the Home Assistant logs.",
             "no_students": "Select at least one student.",
-            "invalid_student": "No access to the timetable of an entered id. Check the id."
+            "invalid_student": "No access to the timetable of an entered id. Check the id.",
+            "school_not_found": "No school found. Try another part of the name or the city.",
+            "search_too_short": "Enter at least 3 characters."
         },
         "abort": {
             "already_configured": "This Sdui account is already configured.",

@@ -26,11 +26,8 @@ Not affiliated with Sdui GmbH.
 3. **Settings → Devices & Services → Add Integration → Sdui**.
 
 ## Login
-| Field | Value |
-|---|---|
-| School | the *slink* of your school: the part after `sdui.app/` in your school's login page, e.g. `https://sdui.app/my-school/login` → `my-school` (the full URL works too) |
-| Username or e-mail | the same login you use on sdui.app |
-| Password | your Sdui password |
+1. **School:** enter part of the name or the city (at least 3 characters) and pick your school from the list. The slink (`https://sdui.app/<slink>/login`) or the full address of the login page works too.
+2. **Username or e-mail** and **password**: the same login you use on sdui.app.
 
 Parent accounts then choose the children to add. The selection can be changed later via **Configure**.
 

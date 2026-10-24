@@ -20,11 +20,20 @@ from homeassistant.helpers.selector import (
 )
 from homeassistant.util import dt as dt_util
 
-from .api import SduiApiClient, SduiApiError, SduiAuthError, async_login, normalize_slink
+from .api import (
+    SduiApiClient,
+    SduiApiError,
+    SduiAuthError,
+    async_find_school,
+    async_login,
+    async_search_schools,
+    normalize_slink,
+)
 from .const import (
     CONF_ACCOUNT_ID,
     CONF_EXTRA_IDS,
     CONF_PASSWORD,
+    CONF_SCHOOL,
     CONF_SLINK,
     CONF_STUDENTS,
     CONF_TOKEN,
@@ -49,6 +58,32 @@ def _credentials_schema(defaults: Mapping[str, Any]) -> vol.Schema:
             vol.Required(CONF_PASSWORD): PASSWORD_SELECTOR,
         }
     )
+
+
+def _school_label(school: dict) -> str:
+    """Name (city) of a school."""
+    name = school.get("name") or school.get("slink")
+    city = school.get("city")
+    return f"{name} ({city})" if city and city not in name else name
+
+
+async def _async_schools_for(hass: HomeAssistant, term: str) -> dict[str, str]:
+    """Return {slink: label} for a search term, slink, school URL or IAM URL."""
+    session = async_get_clientsession(hass)
+    slink = normalize_slink(term)
+    if slink.startswith("https://"):
+        # Keycloak issuer URL entered directly
+        return {slink: slink}
+    schools: dict[str, str] = {}
+    if " " not in term.strip():
+        # Could be a slink or the address of the school's login page
+        try:
+            return {slink: _school_label(await async_find_school(session, slink))}
+        except SduiApiError:
+            pass
+    for school in await async_search_schools(session, term.strip()):
+        schools.setdefault(school["slink"], _school_label(school))
+    return schools
 
 
 def _user_name(user: dict) -> str:
@@ -211,13 +246,68 @@ class SduiConfigFlow(ConfigFlow, domain=DOMAIN):
         self._available: dict[str, str] = {}
         self._client: SduiApiClient | None = None
         self._title = "Sdui"
+        self._schools: dict[str, str] = {}
+        self._slink = ""
 
     async def async_step_user(self, user_input=None) -> ConfigFlowResult:
-        """Login with school, username and password."""
+        """Search the school by name, city or slink."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            term = user_input[CONF_SCHOOL].strip()
+            if len(term) < 3:
+                errors["base"] = "search_too_short"
+            else:
+                try:
+                    self._schools = await _async_schools_for(self.hass, term)
+                except SduiApiError as exc:
+                    errors["base"] = _error_key(exc)
+                else:
+                    if self._schools:
+                        return await self.async_step_school()
+                    errors["base"] = "school_not_found"
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_SCHOOL, default=(user_input or {}).get(CONF_SCHOOL, "")
+                    ): str
+                }
+            ),
+            errors=errors,
+            description_placeholders=PLACEHOLDERS,
+        )
+
+    async def async_step_school(self, user_input=None) -> ConfigFlowResult:
+        """Choose the school from the search results."""
+        if user_input is not None:
+            self._slink = user_input[CONF_SLINK]
+            return await self.async_step_credentials()
+        return self.async_show_form(
+            step_id="school",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_SLINK, default=next(iter(self._schools))): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(value=slink, label=label)
+                                for slink, label in self._schools.items()
+                            ]
+                        )
+                    )
+                }
+            ),
+        )
+
+    async def async_step_credentials(self, user_input=None) -> ConfigFlowResult:
+        """Login with username and password at the chosen school."""
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                data, self_user, self._client = await _async_login(self.hass, user_input)
+                data, self_user, self._client = await _async_login(
+                    self.hass, {**user_input, CONF_SLINK: self._slink}
+                )
             except Exception as exc:  # noqa: BLE001
                 errors["base"] = _error_key(exc)
             else:
@@ -229,10 +319,17 @@ class SduiConfigFlow(ConfigFlow, domain=DOMAIN):
                 return await self.async_step_students()
 
         return self.async_show_form(
-            step_id="user",
-            data_schema=_credentials_schema(user_input or {}),
+            step_id="credentials",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_USERNAME, default=(user_input or {}).get(CONF_USERNAME, "")
+                    ): str,
+                    vol.Required(CONF_PASSWORD): PASSWORD_SELECTOR,
+                }
+            ),
             errors=errors,
-            description_placeholders=PLACEHOLDERS,
+            description_placeholders={"school": self._schools.get(self._slink, self._slink)},
         )
 
     async def async_step_students(self, user_input=None) -> ConfigFlowResult:
