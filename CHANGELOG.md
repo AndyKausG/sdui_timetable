@@ -4,6 +4,10 @@ Versioning follows [SemVer](https://semver.org/). The version in
 `custom_components/sdui/manifest.json` must match the release tag (`v1.0.0` ↔ `1.0.0`,
 `v1.0.0b1` ↔ `1.0.0b1` for betas; publish betas as GitHub pre-release).
 
+## 1.0.0b3 (beta)
+
+- Integration icon and logo (`brand/`, shown by Home Assistant 2026.3 and newer)
+
 ## 1.0.0b2 (beta)
 
 - Setup dialog reworked: clearer titles and texts, result count in the school list, dropdown for many hits
