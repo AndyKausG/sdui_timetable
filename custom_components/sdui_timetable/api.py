@@ -13,12 +13,11 @@ import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime
-from urllib.parse import parse_qs, quote, urljoin, urlparse
+from urllib.parse import parse_qs, urlparse
 
 import aiohttp
-from yarl import URL
 
-from .const import API_BASE, IAM_BASE, IAM_CLIENT_ID, IAM_REDIRECT_URI, IDP_RETURN_URL
+from .const import API_BASE, IAM_BASE, IAM_CLIENT_ID, IAM_REDIRECT_URI
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,15 +45,9 @@ BROWSER_HEADERS = {
 }
 
 TIMEOUT = aiohttp.ClientTimeout(total=30)
-REDIRECT_HOP_LIMIT = 8
 # Renew the token this many seconds before it expires
 TOKEN_EXPIRY_MARGIN = 60
 
-META_REFRESH_RE = re.compile(
-    r"<meta[^>]+http-equiv=[\"']?refresh[\"']?[^>]*content=[\"'][^\"']*url=([^\"'>]+)[\"']",
-    re.IGNORECASE,
-)
-CSRF_TOKEN_RE = re.compile(r'"csrfToken":"([^"]+)"', re.IGNORECASE)
 ISSUER_RE = re.compile(r"(https://[^\s\"'/]+/(?:auth/)?realms/[^\s\"'/?#]+)")
 # Keycloak realm ids look like s-aadbb1dae3204654
 REALM_RE = re.compile(r"^s-[0-9a-f]{16}$")
@@ -172,104 +165,6 @@ async def _login_password(
     token = (body.get("data") or {}).get("access_token") or body.get("access_token")
     if not token:
         raise SduiApiError("Login succeeded but no access token was returned")
-    return token
-
-
-async def _login_idp(
-    session: aiohttp.ClientSession,
-    slink: str,
-    username: str,
-    password: str,
-    idp_uri: str,
-) -> str:
-    """Login via the school's external identity provider (SSO bridge).
-
-    Mirrors what the browser does on "Einloggen mit ...":
-    sdui IdP bridge -> WebUntis login form -> sdui IdP -> /auth/login-idm.
-    """
-    redirect_uri = f"https://sdui.app/sso-verify/{slink}"
-    state = json.dumps(
-        {"branding": "UNTIS", "slink": slink, "goBackToParentWindow": False},
-        separators=(",", ":"),
-    )
-    authorize_url = (
-        f"{idp_uri}&redirect_uri={quote(redirect_uri, safe='')}"
-        f"&state={quote(state, safe='')}"
-    )
-
-    async with session.get(authorize_url, headers=BROWSER_HEADERS) as resp:
-        page = await resp.text()
-    match = META_REFRESH_RE.search(page)
-    if not match:
-        raise SduiApiError("Identity provider page has no redirect target")
-    # content may carry trailing tokens like " target=_top"
-    init_url = html.unescape(match.group(1)).strip().split()[0]
-    _LOGGER.debug("IdP login page: %s", init_url.split("?")[0])
-
-    async with session.get(init_url, headers=BROWSER_HEADERS) as resp:
-        page = await resp.text()
-        login_url = resp.url
-    if not CSRF_TOKEN_RE.search(page):
-        raise SduiApiError(
-            f"Unsupported identity provider login page: {login_url.host}"
-        )
-
-    school = parse_qs(login_url.query_string).get("school", [slink])[0]
-    async with session.post(
-        str(login_url.origin().join(URL("/WebUntis/j_spring_security_check"))),
-        data={"school": school, "j_username": username, "j_password": password},
-        headers={**BROWSER_HEADERS, "X-Requested-With": "XMLHttpRequest"},
-        allow_redirects=False,
-    ) as resp:
-        _LOGGER.debug("IdP credential post: status %s", resp.status)
-
-    # Re-open the authorize URL; with a valid session it redirects back to sdui.app
-    callback_url = None
-    next_url = init_url
-    for _ in range(REDIRECT_HOP_LIMIT):
-        async with session.get(
-            next_url, headers=BROWSER_HEADERS, allow_redirects=False
-        ) as resp:
-            location = _location(resp)
-        if not location:
-            break
-        next_url = urljoin(next_url, location)
-        if next_url.startswith("https://sdui.app/"):
-            callback_url = next_url
-            break
-    if callback_url is None:
-        raise SduiAuthError("Identity provider rejected the credentials")
-
-    query = parse_qs(urlparse(callback_url).query)
-    if "code" not in query or "state" not in query:
-        raise SduiApiError("Missing code/state in Sdui callback")
-
-    async with session.get(
-        IDP_RETURN_URL,
-        params={"code": query["code"][0], "state": query["state"][0]},
-        headers=BROWSER_HEADERS,
-        allow_redirects=False,
-    ) as resp:
-        location = _location(resp)
-    if not location:
-        raise SduiApiError("Code exchange at Sdui identity bridge failed")
-    code = parse_qs(urlparse(urljoin(IDP_RETURN_URL, location)).query).get("code")
-    if not code:
-        raise SduiApiError("Missing code in Sdui SSO redirect")
-
-    async with session.post(
-        f"{API_BASE}/auth/login-idm",
-        json={"code": code[0], "slink": slink},
-        headers=HEADERS,
-    ) as resp:
-        if resp.status in (400, 401, 403, 422):
-            raise SduiAuthError(f"Token exchange rejected. Status: {resp.status}")
-        if resp.status != 200:
-            raise SduiApiError(f"Token exchange failed with status {resp.status}")
-        body = await resp.json()
-    token = (body.get("data") or {}).get("access_token") or body.get("access_token")
-    if not token:
-        raise SduiApiError("Token exchange succeeded but no access token was returned")
     return token
 
 
@@ -425,8 +320,7 @@ async def async_refresh(
 async def async_login(slink: str, username: str, password: str) -> LoginResult:
     """Log in with school slink + credentials and return the tokens.
 
-    Order: Keycloak (OIDC) if the school has a realm, then the external
-    identity provider bridge, then the classic password login.
+    Keycloak (OIDC) if the school has a realm, else the classic password login.
     """
     # Own session: the login flows rely on cookies, which must not leak
     # into Home Assistant's shared client session.
@@ -442,34 +336,10 @@ async def async_login(slink: str, username: str, password: str) -> LoginResult:
             if issuer is not None:
                 _LOGGER.debug("Using Keycloak login: %s", issuer)
                 return await _login_keycloak(session, issuer, username, password)
-            _LOGGER.debug(
-                "No Keycloak realm in school data (keys: %s, meta keys: %s)",
-                list(school), list((school.get("meta") or {})),
+            _LOGGER.debug("No Keycloak realm in school data, using password login")
+            return LoginResult(
+                await _login_password(session, slink, username, password)
             )
-
-            providers = (school.get("meta") or {}).get(
-                "external_identity_providers"
-            ) or []
-            idp_uri = next(
-                (p.get("uri") for p in providers if isinstance(p, dict) and p.get("uri")),
-                None,
-            )
-            if idp_uri is None:
-                return LoginResult(
-                    await _login_password(session, slink, username, password)
-                )
-            try:
-                return LoginResult(
-                    await _login_idp(session, slink, username, password, idp_uri)
-                )
-            except (SduiAuthError, SduiApiError) as idp_exc:
-                _LOGGER.debug("SSO login failed (%s), trying password login", idp_exc)
-                try:
-                    return LoginResult(
-                        await _login_password(session, slink, username, password)
-                    )
-                except SduiAuthError:
-                    raise idp_exc from None
         except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
             raise SduiApiError(f"Network error: {exc}") from exc
 

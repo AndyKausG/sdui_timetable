@@ -33,9 +33,8 @@ Choose **Username & password** and enter:
 | Password | your Sdui password |
 | Timetable user_id (optional) | leave empty: the integration reads your account; parent accounts get a selection of their children. Add the integration once per child. Alternatively enter the id from `https://sdui.app/timetable/users/<user_id>` |
 
-Supported login variants (detected automatically):
-- **"Einloggen mit Sdui"** – Sdui's Keycloak login (`iam.sdui-group.app`, OIDC with PKCE). Tokens are renewed with the refresh token, falling back to a new login. If your school is not detected, paste the address of the Sdui login page (`https://iam.sdui-group.app/realms/s-.../...`) into the *School* field instead of the slink.
-- schools using WebUntis as identity provider (**"Einloggen mit WebUntis"**); the integration runs the same redirect flow as the browser
+Supported login variants (detected automatically from the school):
+- **"Einloggen mit Sdui"** – Sdui's Keycloak login (`iam.sdui-group.app`, OIDC with PKCE). Access tokens are valid for ~5 minutes and are renewed with the refresh token, falling back to a new login. If your school is not detected, paste the address of the Sdui login page (`https://iam.sdui-group.app/realms/s-...`) into the *School* field instead of the slink.
 - the classic Sdui login (username/password directly on sdui.app)
 
 The token is renewed automatically before it expires and whenever the API answers with 401. Credentials are stored in the config entry (like other cloud integrations). If the login fails permanently (e.g. password changed), Home Assistant shows a **re-authenticate** prompt.
