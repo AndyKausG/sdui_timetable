@@ -12,7 +12,6 @@ import secrets
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from datetime import datetime
 from urllib.parse import parse_qs, urlparse
 
 import aiohttp
@@ -83,14 +82,6 @@ def _decode_jwt_claims(token: str) -> dict:
     payload = parts[1]
     payload += "=" * (-len(payload) % 4)
     return json.loads(base64.urlsafe_b64decode(payload))
-
-
-def extract_user_id_from_token(token: str) -> str:
-    """Extract user_id (sub claim) from JWT Bearer token."""
-    try:
-        return str(_decode_jwt_claims(token)["sub"])
-    except Exception as exc:  # noqa: BLE001
-        raise SduiAuthError(f"Cannot extract user_id from token: {exc}") from exc
 
 
 def token_expires_at(token: str) -> float | None:
@@ -345,64 +336,45 @@ async def async_login(slink: str, username: str, password: str) -> LoginResult:
 
 
 class SduiApiClient:
-    """Async API client for sdui.app."""
+    """Async API client for sdui.app, bound to one account."""
 
     def __init__(
         self,
-        token: str | None,
         session: aiohttp.ClientSession,
-        user_id: str | None = None,
-        credentials: tuple[str, str, str] | None = None,
+        credentials: tuple[str, str, str],
+        login: LoginResult | None = None,
         token_callback: Callable[[str], Awaitable[None] | None] | None = None,
     ) -> None:
         """Initialize the API client.
 
-        credentials: (slink, username, password) for automatic re-login.
+        credentials: (slink, username, password) for (re-)login.
+        login: result of a login that was already done (e.g. in the config flow).
         token_callback: called with a freshly obtained token (for persisting).
         """
-        self._token = token
-        self._refresh_token: str | None = None
-        self._token_url: str | None = None
         self._session = session
         self._credentials = credentials
         self._token_callback = token_callback
         self._login_lock = asyncio.Lock()
-        # Use provided user_id or fall back to extracting from token (for backward compatibility)
-        if user_id:
-            self._user_id = user_id
-        elif token:
-            self._user_id = extract_user_id_from_token(token)
-        else:
-            self._user_id = None
-
-    @property
-    def user_id(self) -> str | None:
-        """Return the user ID."""
-        return self._user_id
+        self._token: str | None = None
+        self._refresh_token: str | None = None
+        self._token_url: str | None = None
+        if login is not None:
+            self._apply(login)
 
     @property
     def token(self) -> str | None:
         """Return the current Bearer token."""
         return self._token
 
+    def set_token(self, token: str | None) -> None:
+        """Use a stored token (it is renewed automatically when expired)."""
+        self._token = token
+
     def _apply(self, result: LoginResult) -> None:
         """Take over tokens from a login or refresh."""
         self._token = result.access_token
         self._refresh_token = result.refresh_token
         self._token_url = result.token_url
-
-    @classmethod
-    def from_login(
-        cls,
-        result: LoginResult,
-        session: aiohttp.ClientSession,
-        user_id: str | None,
-        credentials: tuple[str, str, str],
-    ) -> SduiApiClient:
-        """Create a client from a fresh login result."""
-        client = cls(result.access_token, session, user_id=user_id, credentials=credentials)
-        client._apply(result)
-        return client
 
     def _auth_headers(self) -> dict:
         """Return headers including Authorization."""
@@ -416,12 +388,10 @@ class SduiApiClient:
         return exp is not None and exp - TOKEN_EXPIRY_MARGIN < time.time()
 
     async def async_login(self, stale_token: str | None = None) -> None:
-        """Obtain a new token using the stored credentials."""
-        if self._credentials is None:
-            raise SduiAuthError("Token expired and no credentials stored for re-login")
+        """Obtain a new token via refresh token or the stored credentials."""
         async with self._login_lock:
             # Another caller already renewed the token
-            if stale_token is not None and self._token != stale_token:
+            if self._token != stale_token:
                 return
             result = None
             if self._refresh_token and self._token_url:
@@ -437,13 +407,13 @@ class SduiApiClient:
                 result = await async_login(*self._credentials)
             self._apply(result)
             if self._token_callback is not None:
-                result = self._token_callback(self._token)
-                if result is not None:
-                    await result
+                callback_result = self._token_callback(self._token)
+                if callback_result is not None:
+                    await callback_result
 
     async def _get(self, path: str, params: dict | None = None) -> dict:
-        """GET an API path, renewing the token once on expiry/401."""
-        if self._credentials is not None and self._token_expired():
+        """GET an API path, renewing the token on expiry and once on 401."""
+        if self._token_expired():
             await self.async_login(self._token)
 
         for attempt in (1, 2):
@@ -456,7 +426,7 @@ class SduiApiClient:
                     timeout=TIMEOUT,
                 ) as resp:
                     if resp.status in (401, 403):
-                        if attempt == 1 and self._credentials is not None:
+                        if attempt == 1:
                             await self.async_login(token)
                             continue
                         raise SduiAuthError(
@@ -477,17 +447,10 @@ class SduiApiClient:
         return (await self._get("/users/self")).get("data") or {}
 
     async def fetch_timetable(
-        self, begins_at: str, ends_at: str
+        self, user_id: str, begins_at: str, ends_at: str
     ) -> list[dict]:
-        """Fetch timetable lessons between two dates (YYYY-MM-DD format)."""
-        path = f"/timetables/users/{self._user_id}/timetable"
+        """Fetch a user's lessons between two dates (YYYY-MM-DD format)."""
+        path = f"/timetables/users/{user_id}/timetable"
         _LOGGER.debug("Fetching timetable: %s %s-%s", path, begins_at, ends_at)
         data = await self._get(path, {"begins_at": begins_at, "ends_at": ends_at})
         return (data.get("data") or {}).get("lessons", [])
-
-    async def validate_token(self) -> str:
-        """Validate the token by fetching today's timetable. Returns user_id on success."""
-        today = datetime.now().strftime("%Y-%m-%d")
-        # May return empty lessons, that's fine — just check no auth error
-        await self.fetch_timetable(today, today)
-        return self._user_id

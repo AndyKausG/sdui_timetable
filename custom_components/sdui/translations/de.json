@@ -1,0 +1,98 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Sdui-Anmeldung",
+                "description": "Anmeldung mit denselben Zugangsdaten wie auf sdui.app. Bei Eltern-Accounts können alle Kinder auf einmal hinzugefügt werden.",
+                "data": {
+                    "slink": "Schule",
+                    "username": "Benutzername oder E-Mail",
+                    "password": "Passwort"
+                },
+                "data_description": {
+                    "slink": "Kurzname der Schule, also der Teil nach sdui.app/ in der Login-Seite (https://sdui.app/<slink>/login). Die komplette URL geht auch."
+                }
+            },
+            "students": {
+                "title": "Schüler",
+                "description": "Schüler auswählen, deren Stundenplan angezeigt werden soll. Jeder Schüler bekommt ein eigenes Gerät mit Sensoren und Kalender.",
+                "data": {
+                    "students": "Schüler"
+                }
+            },
+            "reauth_confirm": {
+                "title": "Sdui erneut anmelden",
+                "description": "Die Anmeldung für {account} ist nicht mehr gültig. Sdui-Zugangsdaten eingeben.",
+                "data": {
+                    "slink": "Schule",
+                    "username": "Benutzername oder E-Mail",
+                    "password": "Passwort"
+                },
+                "data_description": {
+                    "slink": "Kurzname der Schule, also der Teil nach sdui.app/ in der Login-Seite (https://sdui.app/<slink>/login). Die komplette URL geht auch."
+                }
+            }
+        },
+        "error": {
+            "invalid_auth": "Anmeldung fehlgeschlagen. Schule, Benutzername und Passwort prüfen.",
+            "cannot_connect": "Keine Verbindung zu Sdui oder Schule nicht gefunden. Details im Home-Assistant-Log.",
+            "unknown": "Unerwarteter Fehler. Home-Assistant-Log prüfen.",
+            "no_students": "Mindestens einen Schüler auswählen."
+        },
+        "abort": {
+            "already_configured": "Dieser Sdui-Account ist bereits eingerichtet.",
+            "reauth_successful": "Erneute Anmeldung erfolgreich.",
+            "wrong_account": "Diese Zugangsdaten gehören zu einem anderen Sdui-Account."
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Schüler",
+                "description": "Schüler auswählen, deren Stundenplan angezeigt werden soll. Jeder Schüler bekommt ein eigenes Gerät mit Sensoren und Kalender.",
+                "data": {
+                    "students": "Schüler"
+                }
+            }
+        },
+        "error": {
+            "no_students": "Mindestens einen Schüler auswählen."
+        }
+    },
+    "entity": {
+        "sensor": {
+            "next_lesson": {
+                "name": "Nächste Stunde"
+            },
+            "lessons_today": {
+                "name": "Stunden heute"
+            },
+            "changes_today": {
+                "name": "Vertretungen heute"
+            },
+            "next_school_day": {
+                "name": "Nächster Schultag"
+            },
+            "changes_next_day": {
+                "name": "Vertretungen nächster Schultag"
+            },
+            "school_start_today": {
+                "name": "Unterrichtsbeginn heute"
+            },
+            "school_end_today": {
+                "name": "Unterrichtsende heute"
+            },
+            "school_start_next_day": {
+                "name": "Unterrichtsbeginn nächster Schultag"
+            },
+            "school_end_next_day": {
+                "name": "Unterrichtsende nächster Schultag"
+            }
+        },
+        "calendar": {
+            "timetable": {
+                "name": "Stundenplan"
+            }
+        }
+    }
+}

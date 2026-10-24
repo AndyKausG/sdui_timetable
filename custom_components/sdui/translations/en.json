@@ -1,0 +1,98 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Sdui login",
+                "description": "Log in with the same credentials you use on sdui.app. Parent accounts can add all children at once.",
+                "data": {
+                    "slink": "School",
+                    "username": "Username or e-mail",
+                    "password": "Password"
+                },
+                "data_description": {
+                    "slink": "Slink of your school, i.e. the part after sdui.app/ in its login page (https://sdui.app/<slink>/login). The full URL works too."
+                }
+            },
+            "students": {
+                "title": "Students",
+                "description": "Choose the students whose timetable should be shown. Each student gets an own device with sensors and calendar.",
+                "data": {
+                    "students": "Students"
+                }
+            },
+            "reauth_confirm": {
+                "title": "Sdui re-authentication",
+                "description": "The login for {account} is no longer valid. Enter your Sdui credentials.",
+                "data": {
+                    "slink": "School",
+                    "username": "Username or e-mail",
+                    "password": "Password"
+                },
+                "data_description": {
+                    "slink": "Slink of your school, i.e. the part after sdui.app/ in its login page (https://sdui.app/<slink>/login). The full URL works too."
+                }
+            }
+        },
+        "error": {
+            "invalid_auth": "Login failed. Check school, username and password.",
+            "cannot_connect": "Could not connect to Sdui or school not found. Details in the Home Assistant log.",
+            "unknown": "Unexpected error. Check the Home Assistant logs.",
+            "no_students": "Select at least one student."
+        },
+        "abort": {
+            "already_configured": "This Sdui account is already configured.",
+            "reauth_successful": "Re-authentication successful.",
+            "wrong_account": "These credentials belong to a different Sdui account."
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Students",
+                "description": "Choose the students whose timetable should be shown. Each student gets an own device with sensors and calendar.",
+                "data": {
+                    "students": "Students"
+                }
+            }
+        },
+        "error": {
+            "no_students": "Select at least one student."
+        }
+    },
+    "entity": {
+        "sensor": {
+            "next_lesson": {
+                "name": "Next lesson"
+            },
+            "lessons_today": {
+                "name": "Lessons today"
+            },
+            "changes_today": {
+                "name": "Changes today"
+            },
+            "next_school_day": {
+                "name": "Next school day"
+            },
+            "changes_next_day": {
+                "name": "Changes next school day"
+            },
+            "school_start_today": {
+                "name": "School start today"
+            },
+            "school_end_today": {
+                "name": "School end today"
+            },
+            "school_start_next_day": {
+                "name": "School start next school day"
+            },
+            "school_end_next_day": {
+                "name": "School end next school day"
+            }
+        },
+        "calendar": {
+            "timetable": {
+                "name": "Timetable"
+            }
+        }
+    }
+}
