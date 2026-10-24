@@ -17,3 +17,5 @@ jobs:
         uses: "hacs/action@main"
         with:
           category: "integration"
+          # Domain "sdui" is not registered in home-assistant/brands
+          ignore: "brands"
