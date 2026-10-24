@@ -10,7 +10,7 @@
                     "password": "Password"
                 },
                 "data_description": {
-                    "slink": "Slink of your school: the part after sdui.app/ in the address of its login page, e.g. my-school. The full address works too."
+                    "slink": "Slink of your school: the part after sdui.app/ in the address of its login page, e.g. my-school. Search your school at {school_search} – the address of the page you land on contains the slink. The full address works too."
                 }
             },
             "students": {
@@ -29,7 +29,7 @@
                     "password": "Password"
                 },
                 "data_description": {
-                    "slink": "Slink of your school: the part after sdui.app/ in the address of its login page, e.g. my-school. The full address works too."
+                    "slink": "Slink of your school: the part after sdui.app/ in the address of its login page, e.g. my-school. Search your school at {school_search} – the address of the page you land on contains the slink. The full address works too."
                 }
             }
         },

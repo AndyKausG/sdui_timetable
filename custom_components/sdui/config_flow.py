@@ -27,11 +27,14 @@ from .const import (
     CONF_TOKEN,
     CONF_USERNAME,
     DOMAIN,
+    SCHOOL_SEARCH_URL,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 PASSWORD_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
+# URLs are not allowed in translations, they are passed as placeholders
+PLACEHOLDERS = {"school_search": f"[sdui.app/select-school]({SCHOOL_SEARCH_URL})"}
 
 
 def _credentials_schema(defaults: Mapping[str, Any]) -> vol.Schema:
@@ -149,6 +152,7 @@ class SduiConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=_credentials_schema(user_input or {}),
             errors=errors,
+            description_placeholders=PLACEHOLDERS,
         )
 
     async def async_step_students(self, user_input=None) -> ConfigFlowResult:
@@ -196,7 +200,7 @@ class SduiConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="reauth_confirm",
             data_schema=_credentials_schema(user_input or entry.data),
             errors=errors,
-            description_placeholders={"account": entry.title},
+            description_placeholders={**PLACEHOLDERS, "account": entry.title},
         )
 
     @staticmethod

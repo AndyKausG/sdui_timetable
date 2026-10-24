@@ -230,6 +230,7 @@ class SduiCoordinator(DataUpdateCoordinator[dict[str, StudentTimetable]]):
                 raw = await self.client.fetch_timetable(
                     user_id, today.isoformat(), end.isoformat()
                 )
+                _LOGGER.debug("Student %s: %d lessons received", user_id, len(raw))
                 data[user_id] = StudentTimetable([_parse_lesson(l) for l in raw])
         except SduiAuthError as exc:
             # Triggers the re-authentication flow in the UI
