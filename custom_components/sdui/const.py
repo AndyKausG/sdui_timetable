@@ -6,6 +6,8 @@ API_BASE = "https://api.sdui.app/v1"
 IAM_BASE = "https://iam.sdui-group.app"
 IAM_CLIENT_ID = "sdui-app"
 IAM_REDIRECT_URI = "https://sdui.app/callback"
+# Public school search; the slink is the path segment of the school page it leads to
+SCHOOL_SEARCH_URL = "https://sdui.app/select-school"
 
 SCAN_INTERVAL_MINUTES = 30
 # Days of timetable fetched per update (today + n)
@@ -17,6 +19,7 @@ CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 CONF_ACCOUNT_ID = "account_id"
 CONF_STUDENTS = "students"  # {user_id: display name}
+CONF_EXTRA_IDS = "extra_ids"  # manually entered timetable ids (setup form only)
 
 # Fired for every new substitution or cancellation
 EVENT_CHANGE = "sdui_timetable_change"

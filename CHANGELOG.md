@@ -14,6 +14,8 @@ First release as standalone integration `sdui` (successor of
 - Per student: calendar, next lesson, lessons today, substitutions/cancellations today and on the
   next school day, next school day, school start/end today and on the next school day
 - Event `sdui_timetable_change` for new substitutions/cancellations
+- Link to the Sdui school search in the setup dialog
+- Timetable ids can be entered manually if children are not detected
 - German and English translations
 
 Breaking: new domain `sdui`, manual Bearer-token mode removed. Remove old `sdui_timetable` entries first.

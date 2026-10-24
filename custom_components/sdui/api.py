@@ -224,7 +224,7 @@ async def _login_keycloak(
             "client_id": IAM_CLIENT_ID,
             "redirect_uri": IAM_REDIRECT_URI,
             "response_type": "code",
-            "scope": "openid offline_access",
+            "scope": "openid profile email offline_access",
             "state": secrets.token_hex(16),
             "nonce": secrets.token_hex(16),
             "code_challenge": challenge,
@@ -246,7 +246,7 @@ async def _login_keycloak(
                 "client_id": IAM_CLIENT_ID,
                 "redirect_uri": IAM_REDIRECT_URI,
                 "response_type": "code",
-                "scope": "openid",
+                "scope": "openid profile email",
                 "state": secrets.token_hex(16),
                 "code_challenge": challenge,
                 "code_challenge_method": "S256",
@@ -445,6 +445,10 @@ class SduiApiClient:
     async def fetch_self(self) -> dict:
         """Return the logged-in user (GET /users/self)."""
         return (await self._get("/users/self")).get("data") or {}
+
+    async def fetch_user(self, user_id: str) -> dict:
+        """Return a user (GET /users/{id})."""
+        return (await self._get(f"/users/{user_id}")).get("data") or {}
 
     async def fetch_timetable(
         self, user_id: str, begins_at: str, ends_at: str
