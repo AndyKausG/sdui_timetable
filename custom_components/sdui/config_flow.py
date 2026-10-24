@@ -78,17 +78,51 @@ async def _async_fetch_account(client: SduiApiClient) -> dict:
     if not self_user.get("id"):
         raise SduiApiError("Could not read the account (/users/self)")
     if not (self_user.get("childs") or self_user.get("children")):
-        # sdui.app lists the children (childs[].id) of a parent account; they
-        # may only be part of the full user object
+        # sdui.app reads the children of a parent account from /users/self/family
         try:
-            full = await client.fetch_user(str(self_user["id"]))
+            family = await client.fetch_family()
         except (SduiAuthError, SduiApiError) as exc:
-            _LOGGER.debug("Could not read /users/%s: %s", self_user["id"], exc)
+            _LOGGER.debug("Could not read /users/self/family: %s", exc)
         else:
-            for key in ("childs", "children"):
-                if full.get(key):
-                    self_user = {**self_user, key: full[key]}
+            children = _children_in_family(family, str(self_user["id"]))
+            if children:
+                self_user = {**self_user, "childs": children}
     return self_user
+
+
+_FAMILY_SKIP_KEYS = {
+    "school", "timetable", "properties", "meta", "can", "grade", "roles",
+    "primary_role", "parent_pivot", "child_pivot", "permissions",
+}
+
+
+def _children_in_family(family: Any, own_id: str) -> list[dict]:
+    """Extract the students from a /users/self/family response of unknown shape."""
+    users: list[dict] = []
+    queue = [family]
+    for item in queue:  # breadth-first, keeps the API order
+        if isinstance(item, list):
+            queue.extend(item)
+        elif isinstance(item, dict):
+            if item.get("id") and (item.get("firstname") or item.get("lastname")):
+                users.append(item)
+            # descend into user lists/maps, not into school or timetable data
+            queue.extend(
+                v for k, v in item.items()
+                if isinstance(v, (list, dict)) and k not in _FAMILY_SKIP_KEYS
+            )
+    _LOGGER.debug(
+        "users/self/family: %s",
+        [(u.get("id"), u.get("type")) for u in users],
+    )
+    children, seen = [], {own_id}
+    for user in users:
+        uid = str(user["id"])
+        if uid in seen or user.get("type") not in (None, "STUDENT"):
+            continue
+        seen.add(uid)
+        children.append(user)
+    return children
 
 
 def _students_schema(available: dict[str, str], selected: list[str]) -> vol.Schema:
