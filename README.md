@@ -88,3 +88,6 @@ logger:
 ## Credits & license
 Based on [ToperGamesYT/sdui_timetable](https://github.com/ToperGamesYT/sdui_timetable) (lesson parsing, calendar idea).
 Licensed under GPLv3, see [LICENSE](LICENSE).
+
+## Releases
+See [CHANGELOG.md](CHANGELOG.md). Releases are GitHub releases with tag `vX.Y.Z` matching the `version` in `manifest.json`; HACS offers them as updates.
