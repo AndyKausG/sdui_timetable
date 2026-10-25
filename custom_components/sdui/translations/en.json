@@ -77,6 +77,18 @@
                 "data_description": {
                     "extra_ids": "Only needed if a student is missing: the number in the address of the timetable on sdui.app (…/timetable/users/1234567). Separate several ids with commas."
                 }
+            },
+            "courses": {
+                "title": "Display",
+                "description": "Some schools list all parallel courses of a class (e.g. every religion group). Hidden courses disappear from calendar, sensors and notifications.",
+                "data": {
+                    "hidden_courses": "Hide courses",
+                    "strip_class_prefix": "Remove class prefix"
+                },
+                "data_description": {
+                    "hidden_courses": "The list contains all courses of the currently loaded timetable (last 7 and next 14 days).",
+                    "strip_class_prefix": "Shows “3d - Deutsch” as “Deutsch”."
+                }
             }
         },
         "error": {

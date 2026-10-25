@@ -4,11 +4,17 @@ Versioning follows [SemVer](https://semver.org/). The version in
 `custom_components/sdui/manifest.json` must match the release tag (`v1.0.0` ↔ `1.0.0`,
 `v1.0.0b1` ↔ `1.0.0b1` for betas; publish betas as GitHub pre-release).
 
+## 1.0.0b4 (beta)
+
+- Options: hide courses per student (e.g. parallel religion groups) – applies to calendar, sensors and notifications
+- Options: remove the class prefix ("3d - Deutsch" → "Deutsch")
+- Calendar event description: no "Stunde" line if the school sends no lesson number, room only as location
+- README: example for the Timetable Card
+- Ko-fi support link
+
 ## 1.0.0b3 (beta)
 
 - Integration icon and logo (`brand/`, shown by Home Assistant 2026.3 and newer)
-- Calendar event description: no "Stunde" line if the school sends no lesson number, room only as location
-- README: example for the Timetable Card
 
 ## 1.0.0b2 (beta)
 

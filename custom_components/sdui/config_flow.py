@@ -33,9 +33,11 @@ from .api import (
 from .const import (
     CONF_ACCOUNT_ID,
     CONF_EXTRA_IDS,
+    CONF_HIDDEN_COURSES,
     CONF_PASSWORD,
     CONF_SCHOOL,
     CONF_SLINK,
+    CONF_STRIP_CLASS,
     CONF_STUDENTS,
     CONF_TOKEN,
     CONF_USERNAME,
@@ -397,7 +399,11 @@ class SduiConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class SduiOptionsFlow(OptionsFlow):
-    """Change the selected students."""
+    """Change the selected students and the display of their courses."""
+
+    def __init__(self) -> None:
+        """Initialize."""
+        self._students: dict[str, str] = {}
 
     async def async_step_init(self, user_input=None) -> ConfigFlowResult:
         """Show all students of the account, preselect the current ones."""
@@ -422,7 +428,8 @@ class SduiOptionsFlow(OptionsFlow):
                 errors["base"] = "invalid_student"
             else:
                 if students:
-                    return self.async_create_entry(data={CONF_STUDENTS: students})
+                    self._students = students
+                    return await self.async_step_courses()
                 errors["base"] = "no_students"
 
         return self.async_show_form(
@@ -430,3 +437,46 @@ class SduiOptionsFlow(OptionsFlow):
             data_schema=_students_schema(available, list(current)),
             errors=errors,
         )
+
+    async def async_step_courses(self, user_input=None) -> ConfigFlowResult:
+        """Hide courses per student and optionally drop the class prefix."""
+        entry = self.config_entry
+        hidden: dict[str, list[str]] = entry.options.get(CONF_HIDDEN_COURSES, {})
+        seen = entry.runtime_data.courses
+
+        if user_input is not None:
+            new_hidden: dict[str, list[str]] = {}
+            for value in user_input.get(CONF_HIDDEN_COURSES, []):
+                uid, _, course = value.partition("|")
+                if uid in self._students:
+                    new_hidden.setdefault(uid, []).append(course)
+            return self.async_create_entry(
+                data={
+                    CONF_STUDENTS: self._students,
+                    CONF_HIDDEN_COURSES: new_hidden,
+                    CONF_STRIP_CLASS: user_input.get(CONF_STRIP_CLASS, False),
+                }
+            )
+
+        # value "<user_id>|<course>", label "<student>: <course>"
+        options: list[SelectOptionDict] = []
+        selected: list[str] = []
+        for uid, name in self._students.items():
+            first = name.split()[0] if name else uid
+            for course in sorted(seen.get(uid, set()) | set(hidden.get(uid, []))):
+                value = f"{uid}|{course}"
+                options.append(SelectOptionDict(value=value, label=f"{first}: {course}"))
+                if course in hidden.get(uid, []):
+                    selected.append(value)
+
+        schema: dict[Any, Any] = {}
+        if options:
+            schema[vol.Optional(CONF_HIDDEN_COURSES, default=selected)] = SelectSelector(
+                SelectSelectorConfig(
+                    options=options, multiple=True, mode=SelectSelectorMode.DROPDOWN
+                )
+            )
+        schema[
+            vol.Optional(CONF_STRIP_CLASS, default=entry.options.get(CONF_STRIP_CLASS, False))
+        ] = bool
+        return self.async_show_form(step_id="courses", data_schema=vol.Schema(schema))
