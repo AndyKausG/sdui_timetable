@@ -133,6 +133,17 @@ def lesson_end(lesson: dict) -> datetime | None:
     return dt_util.as_local(dt_util.utc_from_timestamp(ts)) if ts else None
 
 
+def strip_class_prefix(name: str | None, lesson: dict) -> str | None:
+    """Remove a leading "<class> - " of one of the lesson's classes."""
+    if not name:
+        return name
+    for grade in lesson.get("grades", []):
+        prefix = f"{grade} - "
+        if grade and name.startswith(prefix) and len(name) > len(prefix):
+            return name[len(prefix):]
+    return name
+
+
 def _change_key(lesson: dict) -> tuple:
     """Identity of a substitution/cancellation for change detection."""
     return (
@@ -207,6 +218,8 @@ class SduiCoordinator(DataUpdateCoordinator[dict[str, StudentTimetable]]):
         entry: SduiConfigEntry,
         client: SduiApiClient,
         students: dict[str, str],
+        hidden_courses: dict[str, list[str]] | None = None,
+        strip_class_prefix: bool = False,
     ) -> None:
         """Initialize."""
         super().__init__(
@@ -218,6 +231,12 @@ class SduiCoordinator(DataUpdateCoordinator[dict[str, StudentTimetable]]):
         )
         self.client = client
         self.students = students
+        self.hidden_courses = {uid: set(c) for uid, c in (hidden_courses or {}).items()}
+        self.strip_class_prefix = strip_class_prefix
+        # All course names seen per student (before filtering), for the options
+        self.courses: dict[str, set[str]] = {}
+        # Options the coordinator was built with; a change triggers a reload
+        self.options_snapshot: dict[str, Any] = {}
         self._known_changes: dict[str, set[tuple]] | None = None
 
     async def _async_update_data(self) -> dict[str, StudentTimetable]:
@@ -233,7 +252,9 @@ class SduiCoordinator(DataUpdateCoordinator[dict[str, StudentTimetable]]):
                     user_id, start.isoformat(), end.isoformat()
                 )
                 _LOGGER.debug("Student %s: %d lessons received", user_id, len(raw))
-                data[user_id] = StudentTimetable([_parse_lesson(l) for l in raw])
+                lessons = [_parse_lesson(l) for l in raw]
+                self.courses[user_id] = {l["subject"] for l in lessons if l.get("subject")}
+                data[user_id] = StudentTimetable(self._filter(user_id, lessons))
         except SduiAuthError as exc:
             # Triggers the re-authentication flow in the UI
             raise ConfigEntryAuthFailed(f"Authentication error: {exc}") from exc
@@ -242,6 +263,22 @@ class SduiCoordinator(DataUpdateCoordinator[dict[str, StudentTimetable]]):
 
         self._fire_change_events(data)
         return data
+
+    def _filter(self, user_id: str, lessons: list[dict]) -> list[dict]:
+        """Drop hidden courses and optionally shorten "3d - Deutsch" to "Deutsch"."""
+        hidden = self.hidden_courses.get(user_id, set())
+        result = []
+        for lesson in lessons:
+            if lesson.get("subject") in hidden:
+                continue
+            if self.strip_class_prefix:
+                lesson = {
+                    **lesson,
+                    "subject": strip_class_prefix(lesson.get("subject"), lesson),
+                    "shortname": strip_class_prefix(lesson.get("shortname"), lesson),
+                }
+            result.append(lesson)
+        return result
 
     def _fire_change_events(self, data: dict[str, StudentTimetable]) -> None:
         """Fire an event for every substitution/cancellation not seen before."""

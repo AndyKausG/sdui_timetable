@@ -81,7 +81,7 @@ keywords:                    # highlight changes (prefix in the event title)
 
 Take the entity ids from *Settings → Entities* (search for "Stundenplan"/"Timetable"). The integration fetches the last 7 and the next 14 days, so weeks further away stay empty. Schools often publish the timetable only week by week.
 
-Some schools list all parallel courses of a class (e.g. every religion group). Use keyword rules of the card to hide the ones your child does not attend.
+Some schools list all parallel courses of a class (e.g. every religion group). Hide the ones your child does not attend in the integration options (**Configure** → students → *Hide courses*); there you can also shorten “3d - Deutsch” to “Deutsch”.
 
 ## Notification example
 ```yaml

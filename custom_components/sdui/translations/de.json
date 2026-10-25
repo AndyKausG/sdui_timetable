@@ -77,6 +77,18 @@
                 "data_description": {
                     "extra_ids": "Nur nötig, wenn ein Kind fehlt: die Zahl in der Adresse des Stundenplans auf sdui.app (…/timetable/users/1234567). Mehrere IDs mit Komma trennen."
                 }
+            },
+            "courses": {
+                "title": "Anzeige",
+                "description": "Manche Schulen liefern alle parallelen Kurse einer Klasse (z. B. jede Religionsgruppe). Ausgeblendete Kurse verschwinden aus Kalender, Sensoren und Benachrichtigungen.",
+                "data": {
+                    "hidden_courses": "Kurse ausblenden",
+                    "strip_class_prefix": "Klassenkürzel entfernen"
+                },
+                "data_description": {
+                    "hidden_courses": "Die Liste enthält alle Kurse aus dem aktuell geladenen Stundenplan (letzte 7 und nächste 14 Tage).",
+                    "strip_class_prefix": "Zeigt „3d - Deutsch“ als „Deutsch“ an."
+                }
             }
         },
         "error": {
