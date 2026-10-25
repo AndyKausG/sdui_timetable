@@ -1,5 +1,6 @@
 [![Made for Home Assistant](https://img.shields.io/badge/Made%20for-Home%20Assistant-blue?style=for-the-badge&logo=homeassistant)](https://www.home-assistant.io/)
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/derandyk)
 
 # Sdui for Home Assistant
 ![Logo](/assets/logo.png)
@@ -115,6 +116,9 @@ logger:
 
 ## Icon
 The icon is shipped in `custom_components/sdui/brand/` and shown on the integrations page from Home Assistant 2026.3. The HACS dashboard may still show a placeholder until HACS supports local brand images.
+
+## Support
+If this integration saves you time, you can buy me a coffee: [ko-fi.com/derandyk](https://ko-fi.com/derandyk) ☕
 
 ## Credits & license
 Based on [ToperGamesYT/sdui_timetable](https://github.com/ToperGamesYT/sdui_timetable) (lesson parsing, calendar idea).
